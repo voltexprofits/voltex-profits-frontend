@@ -1,18 +1,8 @@
 
-// Determine the API base URL based on environment
-const getApiBaseUrl = () => {
-  // Check if we're in production (deployed)
-  if (process.env.NODE_ENV === 'production' || window.location.hostname === 'www.voltexprofits.com') {
-    return 'https://api.voltexprofits.com';
-  }
-  
-  // Development environment
-  return 'http://localhost:5000';
-};
+// Use your live backend URL
+const API_BASE_URL = 'https://voltex-profits-backend.onrender.com';
 
-const API_BASE_URL = getApiBaseUrl();
-
-// Log the API URL for debugging (remove in production)
+// Log the API URL for debugging
 console.log('API Base URL:', API_BASE_URL);
 
 // Get auth token from localStorage
@@ -147,18 +137,6 @@ export const tradingAPI = {
 
 // Payment API calls
 export const paymentAPI = {
-  // Stripe payments (if you want to keep them as backup)
-  createSubscription: (paymentMethodId) => apiCall('/api/payments/subscribe', {
-    method: 'POST',
-    body: JSON.stringify({ paymentMethodId }),
-  }),
-
-  cancelSubscription: () => apiCall('/api/payments/cancel-subscription', {
-    method: 'POST',
-  }),
-
-  getBilling: () => apiCall('/api/payments/billing'),
-
   // Crypto payments
   verifyCryptoPayment: (paymentData) => apiCall('/api/payments/verify-crypto', {
     method: 'POST',
@@ -168,26 +146,10 @@ export const paymentAPI = {
 
 // User settings API
 export const userAPI = {
-  updateProfile: (profileData) => apiCall('/api/auth/profile', {
-    method: 'PUT',
-    body: JSON.stringify(profileData),
-  }),
-
-  changePassword: (passwordData) => apiCall('/api/auth/change-password', {
-    method: 'PUT',
-    body: JSON.stringify(passwordData),
-  }),
-
   updateTradingConfig: (config) => apiCall('/api/auth/trading-config', {
     method: 'PUT',
     body: JSON.stringify(config),
   }),
-};
-
-// Health check API
-export const healthAPI = {
-  ping: () => apiCall('/api/health'),
-  status: () => apiCall('/api/status'),
 };
 
 // Export default object with all APIs
@@ -197,30 +159,7 @@ export default {
   trading: tradingAPI,
   payments: paymentAPI,
   user: userAPI,
-  health: healthAPI,
 };
 
 // Export the base URL for other components that might need it
 export { API_BASE_URL };
-
-// Utility function to check if API is reachable
-export const checkApiConnection = async () => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/`);
-    return response.ok;
-  } catch (error) {
-    console.error('API connection check failed:', error);
-    return false;
-  }
-};
-
-// Development helper - test API connection on load
-if (process.env.NODE_ENV === 'development') {
-  checkApiConnection().then(isConnected => {
-    if (isConnected) {
-      console.log('✅ API connection successful');
-    } else {
-      console.log('❌ API connection failed - make sure backend is running');
-    }
-  });
-}
