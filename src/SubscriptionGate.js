@@ -7,18 +7,14 @@ function SubscriptionGate({ user, onLogout }) {
   const [subscriptionStatus, setSubscriptionStatus] = useState('checking');
   const [showPayment, setShowPayment] = useState(false);
   const [isStartingTrial, setIsStartingTrial] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     checkSubscriptionStatus();
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const checkSubscriptionStatus = () => {
-    // Force expired status for testing payment system
-    setSubscriptionStatus('expired');
-    return;
-    
-    // Original code (commented out for testing):
-    /*
+    // FIXED: Check real subscription status instead of forcing expired
     if (!user?.subscription) {
       setSubscriptionStatus('expired');
       return;
@@ -33,11 +29,12 @@ function SubscriptionGate({ user, onLogout }) {
     } else {
       setSubscriptionStatus('expired');
     }
-    */
   };
 
   const handleStartFreeTrial = async () => {
     setIsStartingTrial(true);
+    setSuccessMessage('');
+    
     try {
       const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://voltex-profits-backend.onrender.com';
       
@@ -57,17 +54,30 @@ function SubscriptionGate({ user, onLogout }) {
         const updatedUser = { ...user, subscription: data.subscription };
         localStorage.setItem('user', JSON.stringify(updatedUser));
         
-        // Update subscription status to active
+        // Show success message
+        setSuccessMessage('🎉 Free trial activated! Welcome to Voltex Profits!');
+        
+        // Update subscription status immediately to show dashboard
         setSubscriptionStatus('active');
         
-        // Show success message
-        alert('🎉 Free trial activated! Welcome to Voltex Profits!');
+        // Optional: Remove success message after 3 seconds for clean UI
+        setTimeout(() => {
+          setSuccessMessage('');
+        }, 3000);
+        
       } else {
-        alert(data.message || 'Failed to start trial. Please try again.');
+        // Better error handling
+        if (data.message.includes('already used')) {
+          alert('You have already used your free trial. Please upgrade to premium.');
+        } else if (data.message.includes('active subscription')) {
+          alert('You already have an active subscription!');
+        } else {
+          alert(data.message || 'Failed to start trial. Please try again.');
+        }
       }
     } catch (error) {
       console.error('Trial start error:', error);
-      alert('Failed to start trial. Please try again.');
+      alert('Network error. Please check your connection and try again.');
     } finally {
       setIsStartingTrial(false);
     }
@@ -86,6 +96,17 @@ function SubscriptionGate({ user, onLogout }) {
 
   const handlePaymentCancel = () => {
     setShowPayment(false);
+  };
+
+  // Calculate trial info for banner
+  const getTrialInfo = () => {
+    if (user?.subscription?.plan === 'free_trial') {
+      const endDate = new Date(user.subscription.endDate);
+      const now = new Date();
+      const daysLeft = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
+      return { isTrial: true, daysLeft: Math.max(0, daysLeft) };
+    }
+    return { isTrial: false, daysLeft: 0 };
   };
 
   const styles = {
@@ -261,6 +282,17 @@ function SubscriptionGate({ user, onLogout }) {
       color: '#92400e',
       fontWeight: '500'
     },
+    successMessage: {
+      backgroundColor: '#dcfce7',
+      border: '1px solid #86efac',
+      borderRadius: '8px',
+      padding: '1rem',
+      margin: '1rem 0',
+      fontSize: '0.875rem',
+      color: '#065f46',
+      fontWeight: '600',
+      textAlign: 'center'
+    },
     spinner: {
       width: '16px',
       height: '16px',
@@ -290,7 +322,7 @@ function SubscriptionGate({ user, onLogout }) {
     );
   }
 
-  // Check if subscription is expired (forced for testing)
+  // Check if subscription is expired
   if (subscriptionStatus === 'expired') {
     return (
       <div style={styles.container}>
@@ -307,6 +339,13 @@ function SubscriptionGate({ user, onLogout }) {
             <div style={styles.testNote}>
               🧪 TEST MODE: Crypto payment system active
             </div>
+
+            {/* Success Message */}
+            {successMessage && (
+              <div style={styles.successMessage}>
+                {successMessage}
+              </div>
+            )}
 
             {/* Free Trial Option */}
             <div style={styles.freeTrialInfo}>
@@ -354,17 +393,21 @@ function SubscriptionGate({ user, onLogout }) {
             <div style={styles.buttonGroup}>
               <button
                 onClick={handleStartFreeTrial}
-                disabled={isStartingTrial}
+                disabled={isStartingTrial || successMessage}
                 style={{
                   ...styles.trialButton,
-                  opacity: isStartingTrial ? 0.7 : 1,
-                  cursor: isStartingTrial ? 'not-allowed' : 'pointer'
+                  opacity: (isStartingTrial || successMessage) ? 0.7 : 1,
+                  cursor: (isStartingTrial || successMessage) ? 'not-allowed' : 'pointer'
                 }}
               >
                 {isStartingTrial ? (
                   <>
                     <div style={styles.spinner}></div>
                     Starting Trial...
+                  </>
+                ) : successMessage ? (
+                  <>
+                    ✅ Trial Activated!
                   </>
                 ) : (
                   <>
@@ -373,22 +416,26 @@ function SubscriptionGate({ user, onLogout }) {
                 )}
               </button>
               
-              <button
-                onClick={handleUpgradeClick}
-                style={styles.primaryButton}
-              >
-                💳 Pay with USDT
-              </button>
+              {!successMessage && (
+                <button
+                  onClick={handleUpgradeClick}
+                  style={styles.primaryButton}
+                >
+                  💳 Pay with USDT
+                </button>
+              )}
             </div>
 
-            <div style={styles.buttonGroup}>
-              <button
-                onClick={onLogout}
-                style={styles.secondaryButton}
-              >
-                Logout
-              </button>
-            </div>
+            {!successMessage && (
+              <div style={styles.buttonGroup}>
+                <button
+                  onClick={onLogout}
+                  style={styles.secondaryButton}
+                >
+                  Logout
+                </button>
+              </div>
+            )}
             
             <div style={{ marginTop: '1rem', fontSize: '0.75rem', color: '#6b7280' }}>
               <p>🔒 Secure blockchain payments</p>
@@ -400,21 +447,18 @@ function SubscriptionGate({ user, onLogout }) {
     );
   }
 
-  // This code won't run during testing since we're forcing expired status
-  const showTrialWarning = user?.subscription?.plan === 'free_trial';
-  const endDate = new Date(user?.subscription?.endDate);
-  const now = new Date();
-  const daysLeft = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
-  const showUpgradeBanner = showTrialWarning && daysLeft <= 3;
+  // Active subscription - show dashboard with trial banner if needed
+  const trialInfo = getTrialInfo();
+  const showUpgradeBanner = trialInfo.isTrial && trialInfo.daysLeft <= 3;
 
   return (
     <div style={styles.container}>
-      {/* Upgrade Banner */}
+      {/* Upgrade Banner for Trial Users */}
       {showUpgradeBanner && (
         <div style={styles.subscriptionBanner}>
           <div style={styles.bannerContent}>
             <div style={styles.bannerText}>
-              ⏰ Your free trial ends in {daysLeft} day{daysLeft !== 1 ? 's' : ''}. 
+              ⏰ Your free trial ends in {trialInfo.daysLeft} day{trialInfo.daysLeft !== 1 ? 's' : ''}. 
               Upgrade now to continue automated trading!
             </div>
             <button
