@@ -1,9 +1,10 @@
 
-// Use your live backend URL
-const API_BASE_URL = 'https://voltex-profits-backend.onrender.com';
+// Use environment variable from Vercel, fallback to hardcoded URL
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://voltex-profits-backend.onrender.com';
 
 // Log the API URL for debugging
 console.log('API Base URL:', API_BASE_URL);
+console.log('Environment Variable:', process.env.REACT_APP_API_URL);
 
 // Get auth token from localStorage
 const getAuthToken = () => {
@@ -51,9 +52,14 @@ const apiCall = async (endpoint, options = {}) => {
 export const authAPI = {
   login: async (credentials) => {
     try {
+      console.log('Attempting login to:', `${API_BASE_URL}/api/auth/login`);
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        mode: 'cors',
         body: JSON.stringify(credentials),
       });
       
@@ -72,9 +78,14 @@ export const authAPI = {
 
   register: async (userData) => {
     try {
+      console.log('Attempting registration to:', `${API_BASE_URL}/api/auth/register`);
       const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        mode: 'cors',
         body: JSON.stringify(userData),
       });
       
