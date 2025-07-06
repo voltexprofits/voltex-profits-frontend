@@ -6,6 +6,7 @@ import CryptoPayment from './CryptoPayment';
 function SubscriptionGate({ user, onLogout }) {
   const [subscriptionStatus, setSubscriptionStatus] = useState('checking');
   const [showPayment, setShowPayment] = useState(false);
+  const [isStartingTrial, setIsStartingTrial] = useState(false);
 
   useEffect(() => {
     checkSubscriptionStatus();
@@ -33,6 +34,43 @@ function SubscriptionGate({ user, onLogout }) {
       setSubscriptionStatus('expired');
     }
     */
+  };
+
+  const handleStartFreeTrial = async () => {
+    setIsStartingTrial(true);
+    try {
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://voltex-profits-backend.onrender.com';
+      
+      const response = await fetch(`${API_BASE_URL}/api/auth/start-trial`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ userId: user.id })
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        // Update user data with trial info
+        const updatedUser = { ...user, subscription: data.subscription };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        
+        // Update subscription status to active
+        setSubscriptionStatus('active');
+        
+        // Show success message
+        alert('🎉 Free trial activated! Welcome to Voltex Profits!');
+      } else {
+        alert(data.message || 'Failed to start trial. Please try again.');
+      }
+    } catch (error) {
+      console.error('Trial start error:', error);
+      alert('Failed to start trial. Please try again.');
+    } finally {
+      setIsStartingTrial(false);
+    }
   };
 
   const handleUpgradeClick = () => {
@@ -125,6 +163,22 @@ function SubscriptionGate({ user, onLogout }) {
       justifyContent: 'center',
       flexWrap: 'wrap'
     },
+    trialButton: {
+      padding: '0.75rem 1.5rem',
+      background: 'linear-gradient(45deg, #10b981, #34d399)',
+      color: 'white',
+      border: 'none',
+      borderRadius: '8px',
+      fontWeight: '600',
+      cursor: 'pointer',
+      fontSize: '0.875rem',
+      transition: 'all 0.2s',
+      minWidth: '160px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '0.5rem'
+    },
     primaryButton: {
       padding: '0.75rem 1.5rem',
       background: 'linear-gradient(45deg, #3b82f6, #8b5cf6)',
@@ -153,6 +207,15 @@ function SubscriptionGate({ user, onLogout }) {
       margin: '1rem 0',
       fontSize: '0.875rem',
       color: '#1e40af'
+    },
+    freeTrialInfo: {
+      backgroundColor: '#ecfdf5',
+      border: '1px solid #86efac',
+      borderRadius: '8px',
+      padding: '1rem',
+      margin: '1rem 0',
+      fontSize: '0.875rem',
+      color: '#065f46'
     },
     cryptoInfo: {
       backgroundColor: '#f0fdf4',
@@ -197,8 +260,24 @@ function SubscriptionGate({ user, onLogout }) {
       fontSize: '0.75rem',
       color: '#92400e',
       fontWeight: '500'
+    },
+    spinner: {
+      width: '16px',
+      height: '16px',
+      border: '2px solid #ffffff40',
+      borderTop: '2px solid #ffffff',
+      borderRadius: '50%',
+      animation: 'spin 1s linear infinite'
     }
   };
+
+  // Add CSS animation for spinner
+  const spinnerKeyframes = `
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  `;
 
   // Show crypto payment page
   if (showPayment) {
@@ -215,6 +294,7 @@ function SubscriptionGate({ user, onLogout }) {
   if (subscriptionStatus === 'expired') {
     return (
       <div style={styles.container}>
+        <style>{spinnerKeyframes}</style>
         <div style={styles.expiredOverlay}>
           <div style={styles.expiredCard}>
             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔒</div>
@@ -226,6 +306,16 @@ function SubscriptionGate({ user, onLogout }) {
             
             <div style={styles.testNote}>
               🧪 TEST MODE: Crypto payment system active
+            </div>
+
+            {/* Free Trial Option */}
+            <div style={styles.freeTrialInfo}>
+              <strong>🎁 Try Risk-Free for 14 Days!</strong><br/>
+              • Full access to all premium features<br/>
+              • No payment required to start<br/>
+              • Cancel anytime during trial<br/>
+              • Automatic trading activation<br/>
+              • Real-time profit tracking
             </div>
             
             <div style={styles.trialInfo}>
@@ -260,18 +350,43 @@ function SubscriptionGate({ user, onLogout }) {
               </div>
             </div>
 
+            {/* Updated Button Group with Free Trial */}
+            <div style={styles.buttonGroup}>
+              <button
+                onClick={handleStartFreeTrial}
+                disabled={isStartingTrial}
+                style={{
+                  ...styles.trialButton,
+                  opacity: isStartingTrial ? 0.7 : 1,
+                  cursor: isStartingTrial ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {isStartingTrial ? (
+                  <>
+                    <div style={styles.spinner}></div>
+                    Starting Trial...
+                  </>
+                ) : (
+                  <>
+                    🎁 Start 14-Day Free Trial
+                  </>
+                )}
+              </button>
+              
+              <button
+                onClick={handleUpgradeClick}
+                style={styles.primaryButton}
+              >
+                💳 Pay with USDT
+              </button>
+            </div>
+
             <div style={styles.buttonGroup}>
               <button
                 onClick={onLogout}
                 style={styles.secondaryButton}
               >
                 Logout
-              </button>
-              <button
-                onClick={handleUpgradeClick}
-                style={styles.primaryButton}
-              >
-                💳 Pay with USDT
               </button>
             </div>
             

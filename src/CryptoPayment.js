@@ -44,17 +44,23 @@ function CryptoPayment({ user, onSuccess, onCancel }) {
     setIsVerifying(true);
     
     try {
+      // FIXED: Use environment variable with correct fallback URL
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://voltex-profits-backend.onrender.com';
+      
       // Send transaction ID to backend for verification
-      const response = await fetch('http://localhost:5000/api/payments/verify-crypto', {
+      const response = await fetch(`${API_BASE_URL}/api/payments/verify-crypto`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
+        mode: 'cors',
         body: JSON.stringify({
           transactionId: transactionId.trim(),
           amount: paymentAmount,
-          address: paymentAddress
+          address: paymentAddress,
+          userId: user?.id
         }),
       });
 
@@ -62,6 +68,10 @@ function CryptoPayment({ user, onSuccess, onCancel }) {
 
       if (response.ok) {
         setPaymentStatus('paid');
+        // Update user data in localStorage
+        const updatedUser = { ...user, subscription: data.subscription };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        
         setTimeout(() => {
           onSuccess();
         }, 2000);
@@ -69,6 +79,7 @@ function CryptoPayment({ user, onSuccess, onCancel }) {
         alert(data.message || 'Payment verification failed. Please check your transaction ID.');
       }
     } catch (error) {
+      console.error('Payment verification error:', error);
       alert('Error verifying payment. Please try again.');
     } finally {
       setIsVerifying(false);
