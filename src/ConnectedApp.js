@@ -1,185 +1,185 @@
 
 import React, { useState, useEffect } from 'react';
-import { dashboardAPI, tradingAPI, userAPI } from './services/api';
+import LiveTradingPage from './LiveTradingPage';
 
 function ConnectedApp({ user, onLogout }) {
-  const [isTrading, setIsTrading] = useState(false);
-  const [selectedPair, setSelectedPair] = useState('BTC/USDT');
-  const [selectedStrategy, setSelectedStrategy] = useState('steady_climb');
-  const [dashboardData, setDashboardData] = useState(null);
-  const [recentTrades, setRecentTrades] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [error, setError] = useState(null);
+  const [activePage, setActivePage] = useState('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [stats, setStats] = useState({
+    balance: 1250.75,
+    totalProfit: 342.50,
+    todayPnL: 15.32,
+    successRate: 73.5,
+    yieldWallet: 85.63,
+    activeTrades: 3,
+    totalTrades: 147
+  });
 
-  const cryptoPairs = [
-    'BTC/USDT', 'ETH/USDT', 'BNB/USDT', 'ADA/USDT', 
-    'SOL/USDT', 'XRP/USDT', 'DOT/USDT', 'AVAX/USDT'
+  // Calculate trial info
+  const getTrialInfo = () => {
+    if (user?.subscription?.plan === 'free_trial') {
+      const endDate = new Date(user.subscription.endDate);
+      const now = new Date();
+      const daysLeft = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
+      return { isTrial: true, daysLeft: Math.max(0, daysLeft) };
+    }
+    return { isTrial: false, daysLeft: 0 };
+  };
+
+  const trialInfo = getTrialInfo();
+
+  const navigationItems = [
+    { id: 'dashboard', name: 'Dashboard', icon: '🏠', description: 'Overview & Stats' },
+    { id: 'trading', name: 'Trading', icon: '📊', description: 'Live Controls', badge: 'HYPE' },
+    { id: 'analytics', name: 'Analytics', icon: '📈', description: 'Performance Charts' },
+    { id: 'wallet', name: 'Wallet', icon: '💰', description: 'Balance & Transactions' },
+    { id: 'history', name: 'History', icon: '📋', description: 'Trade Records' },
+    { id: 'settings', name: 'Settings', icon: '⚙️', description: 'Account Preferences' },
+    { id: 'academy', name: 'Academy', icon: '🎓', description: 'Learn Trading' },
+    { id: 'support', name: 'Support', icon: '📞', description: 'Help & Contact' }
   ];
-
-  const strategies = [
-    { value: 'steady_climb', name: 'Steady Climb - Conservative' },
-    { value: 'power_surge', name: 'Power Surge - Aggressive' }
-  ];
-
-  // Load dashboard data when component mounts
-  useEffect(() => {
-    loadDashboardData();
-    
-    // Set up automatic refresh every 30 seconds
-    const interval = setInterval(loadDashboardData, 30000);
-    
-    return () => clearInterval(interval);
-  }, []);
-
-  // Update initial values from user data
-  useEffect(() => {
-    if (user?.trading) {
-      setSelectedPair(user.trading.tradingPair || 'BTC/USDT');
-      setSelectedStrategy(user.trading.strategy || 'steady_climb');
-      setIsTrading(user.trading.isActive || false);
-    }
-  }, [user]);
-
-  const loadDashboardData = async () => {
-    try {
-      const [statsData, tradesData] = await Promise.all([
-        dashboardAPI.getStats(),
-        dashboardAPI.getTrades(1, 5) // Get latest 5 trades
-      ]);
-      
-      setDashboardData(statsData.user);
-      setRecentTrades(tradesData.trades || []);
-      setError(null);
-    } catch (err) {
-      console.error('Error loading dashboard data:', err);
-      setError('Failed to load dashboard data');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleTradingToggle = async () => {
-    if (isUpdating) return;
-    
-    setIsUpdating(true);
-    try {
-      const newTradingState = !isTrading;
-      
-      // Update trading settings on backend
-      await dashboardAPI.updateTradingSettings({
-        tradingPair: selectedPair,
-        strategy: selectedStrategy,
-        isActive: newTradingState
-      });
-      
-      setIsTrading(newTradingState);
-      
-      // Refresh dashboard data
-      await loadDashboardData();
-      
-    } catch (err) {
-      console.error('Error toggling trading:', err);
-      setError('Failed to update trading status');
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  const handleSettingsChange = async (field, value) => {
-    try {
-      if (field === 'tradingPair') {
-        setSelectedPair(value);
-      } else if (field === 'strategy') {
-        setSelectedStrategy(value);
-      }
-      
-      // Update backend if trading is active
-      if (isTrading) {
-        await dashboardAPI.updateTradingSettings({
-          tradingPair: field === 'tradingPair' ? value : selectedPair,
-          strategy: field === 'strategy' ? value : selectedStrategy,
-          isActive: isTrading
-        });
-        
-        // Refresh data
-        await loadDashboardData();
-      }
-    } catch (err) {
-      console.error('Error updating settings:', err);
-      setError('Failed to update settings');
-    }
-  };
-
-  const refreshData = async () => {
-    setIsLoading(true);
-    await loadDashboardData();
-  };
 
   const styles = {
     container: {
+      display: 'flex',
       minHeight: '100vh',
-      backgroundColor: '#f9fafb',
+      backgroundColor: '#f8fafc',
       fontFamily: 'system-ui, sans-serif'
     },
-    nav: {
+    sidebar: {
+      width: sidebarOpen ? '280px' : '80px',
       backgroundColor: 'white',
-      borderBottom: '1px solid #e5e7eb',
-      padding: '1rem 2rem',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+      borderRight: '1px solid #e2e8f0',
+      transition: 'width 0.3s ease',
+      position: 'fixed',
+      height: '100vh',
+      zIndex: 1000,
+      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
     },
-    navContent: {
+    sidebarHeader: {
+      padding: '1.5rem',
+      borderBottom: '1px solid #e2e8f0',
       display: 'flex',
-      justifyContent: 'space-between',
       alignItems: 'center',
-      maxWidth: '1200px',
-      margin: '0 auto'
+      gap: '0.75rem'
     },
     logo: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '0.5rem'
-    },
-    logoIcon: {
-      width: '32px',
-      height: '32px',
+      width: '40px',
+      height: '40px',
       background: 'linear-gradient(45deg, #3b82f6, #8b5cf6)',
-      borderRadius: '8px',
+      borderRadius: '12px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       color: 'white',
-      fontWeight: 'bold'
+      fontWeight: 'bold',
+      fontSize: '1.25rem'
     },
     logoText: {
       fontSize: '1.25rem',
       fontWeight: 'bold',
-      color: '#111827'
+      color: '#1e293b',
+      display: sidebarOpen ? 'block' : 'none'
     },
-    userSection: {
+    navigation: {
+      padding: '1rem 0'
+    },
+    navItem: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.75rem',
+      padding: '0.75rem 1.5rem',
+      margin: '0.25rem 1rem',
+      borderRadius: '8px',
+      cursor: 'pointer',
+      transition: 'all 0.2s',
+      textDecoration: 'none',
+      color: '#64748b',
+      position: 'relative'
+    },
+    navItemActive: {
+      backgroundColor: '#eff6ff',
+      color: '#2563eb',
+      borderLeft: '4px solid #2563eb'
+    },
+    navIcon: {
+      fontSize: '1.25rem',
+      minWidth: '24px'
+    },
+    navText: {
+      display: sidebarOpen ? 'block' : 'none',
+      fontWeight: '500'
+    },
+    navDescription: {
+      display: sidebarOpen ? 'block' : 'none',
+      fontSize: '0.75rem',
+      color: '#94a3b8',
+      marginTop: '0.25rem'
+    },
+    navBadge: {
+      position: 'absolute',
+      top: '0.5rem',
+      right: '1rem',
+      backgroundColor: '#f59e0b',
+      color: 'white',
+      fontSize: '0.625rem',
+      fontWeight: '600',
+      padding: '0.125rem 0.375rem',
+      borderRadius: '10px',
+      display: sidebarOpen ? 'block' : 'none'
+    },
+    mainContent: {
+      flex: 1,
+      marginLeft: sidebarOpen ? '280px' : '80px',
+      transition: 'margin-left 0.3s ease'
+    },
+    header: {
+      backgroundColor: 'white',
+      padding: '1rem 2rem',
+      borderBottom: '1px solid #e2e8f0',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      position: 'sticky',
+      top: 0,
+      zIndex: 999
+    },
+    headerLeft: {
       display: 'flex',
       alignItems: 'center',
       gap: '1rem'
     },
-    statusIndicator: {
+    menuButton: {
+      padding: '0.5rem',
+      border: 'none',
+      backgroundColor: 'transparent',
+      cursor: 'pointer',
+      borderRadius: '6px',
+      fontSize: '1.25rem'
+    },
+    headerTitle: {
+      fontSize: '1.5rem',
+      fontWeight: 'bold',
+      color: '#1e293b'
+    },
+    headerRight: {
       display: 'flex',
       alignItems: 'center',
-      gap: '0.5rem',
-      padding: '0.5rem 1rem',
+      gap: '1rem'
+    },
+    statusBadge: {
+      padding: '0.25rem 0.75rem',
       borderRadius: '20px',
       fontSize: '0.75rem',
       fontWeight: '500',
-      backgroundColor: isTrading ? '#dcfce7' : '#fee2e2',
-      color: isTrading ? '#166534' : '#991b1b'
+      backgroundColor: '#fee2e2',
+      color: '#dc2626'
     },
-    statusDot: {
-      width: '8px',
-      height: '8px',
-      borderRadius: '50%',
-      backgroundColor: isTrading ? '#22c55e' : '#ef4444'
-    },
-    username: {
-      color: '#6b7280',
+    userInfo: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.5rem',
+      color: '#64748b',
       fontSize: '0.875rem'
     },
     logoutButton: {
@@ -188,71 +188,42 @@ function ConnectedApp({ user, onLogout }) {
       color: 'white',
       border: 'none',
       borderRadius: '6px',
-      fontSize: '0.75rem',
+      fontSize: '0.875rem',
       cursor: 'pointer',
-      fontWeight: '500',
-      transition: 'background-color 0.2s'
+      fontWeight: '500'
     },
-    main: {
-      maxWidth: '1200px',
-      margin: '0 auto',
-      padding: '2rem'
+    content: {
+      padding: '2rem',
+      maxWidth: '1400px',
+      margin: '0 auto'
     },
-    loadingOverlay: {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.5)',
+    trialBanner: {
+      backgroundColor: '#fef3c7',
+      border: '1px solid #f59e0b',
+      borderRadius: '12px',
+      padding: '1rem 1.5rem',
+      marginBottom: '2rem',
       display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000
+      justifyContent: 'space-between',
+      alignItems: 'center'
     },
-    loadingSpinner: {
-      width: '32px',
-      height: '32px',
-      border: '3px solid #e5e7eb',
-      borderTop: '3px solid #3b82f6',
-      borderRadius: '50%',
-      animation: 'spin 1s linear infinite'
+    trialText: {
+      color: '#92400e',
+      fontWeight: '600'
     },
-    errorBanner: {
-      backgroundColor: '#fee2e2',
-      border: '1px solid #fca5a5',
-      borderRadius: '8px',
-      padding: '1rem',
-      marginBottom: '1rem',
-      color: '#991b1b'
-    },
-    header: {
-      marginBottom: '2rem'
-    },
-    title: {
-      fontSize: '2rem',
-      fontWeight: 'bold',
-      color: '#111827',
-      marginBottom: '0.5rem'
-    },
-    subtitle: {
-      color: '#6b7280',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '1rem'
-    },
-    refreshButton: {
-      padding: '0.25rem 0.5rem',
-      backgroundColor: '#3b82f6',
+    upgradeButton: {
+      padding: '0.5rem 1rem',
+      backgroundColor: '#f59e0b',
       color: 'white',
       border: 'none',
-      borderRadius: '4px',
-      fontSize: '0.75rem',
+      borderRadius: '6px',
+      fontSize: '0.875rem',
+      fontWeight: '500',
       cursor: 'pointer'
     },
     statsGrid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
       gap: '1.5rem',
       marginBottom: '2rem'
     },
@@ -260,323 +231,387 @@ function ConnectedApp({ user, onLogout }) {
       backgroundColor: 'white',
       padding: '1.5rem',
       borderRadius: '12px',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-      border: '1px solid #f3f4f6'
+      border: '1px solid #e2e8f0',
+      boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
     },
     statHeader: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: '1rem'
+    },
+    statTitle: {
+      color: '#64748b',
       fontSize: '0.875rem',
-      color: '#6b7280',
-      marginBottom: '0.5rem',
       fontWeight: '500'
     },
+    statIcon: {
+      fontSize: '1.5rem'
+    },
     statValue: {
-      fontSize: '1.5rem',
+      fontSize: '2rem',
       fontWeight: 'bold',
-      color: '#111827'
+      color: '#1e293b'
     },
-    profitValue: {
-      fontSize: '1.5rem',
-      fontWeight: 'bold',
-      color: '#16a34a'
+    statChange: {
+      fontSize: '0.875rem',
+      marginTop: '0.5rem'
     },
-    tradingPanel: {
+    statChangePositive: {
+      color: '#059669'
+    },
+    statChangeNegative: {
+      color: '#dc2626'
+    },
+    quickActions: {
       backgroundColor: 'white',
       padding: '1.5rem',
       borderRadius: '12px',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-      border: '1px solid #f3f4f6',
+      border: '1px solid #e2e8f0',
       marginBottom: '2rem'
     },
-    panelTitle: {
+    quickActionsTitle: {
       fontSize: '1.25rem',
-      fontWeight: '600',
-      color: '#111827',
-      marginBottom: '1.5rem'
+      fontWeight: 'bold',
+      color: '#1e293b',
+      marginBottom: '1rem'
     },
-    formGrid: {
+    actionButtons: {
       display: 'grid',
       gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-      gap: '1.5rem',
-      marginBottom: '1.5rem'
+      gap: '1rem'
     },
-    label: {
-      display: 'block',
-      fontSize: '0.875rem',
-      fontWeight: '500',
-      color: '#374151',
+    actionButton: {
+      padding: '1rem',
+      border: '1px solid #e2e8f0',
+      borderRadius: '8px',
+      backgroundColor: 'white',
+      cursor: 'pointer',
+      transition: 'all 0.2s',
+      textAlign: 'center'
+    },
+    actionIcon: {
+      fontSize: '1.5rem',
       marginBottom: '0.5rem'
     },
-    select: {
-      width: '100%',
-      padding: '0.5rem 0.75rem',
-      border: '1px solid #d1d5db',
-      borderRadius: '6px',
+    actionText: {
+      fontSize: '0.875rem',
+      fontWeight: '500',
+      color: '#1e293b'
+    },
+    recentActivity: {
       backgroundColor: 'white',
-      fontSize: '0.875rem'
+      padding: '1.5rem',
+      borderRadius: '12px',
+      border: '1px solid #e2e8f0'
     },
-    statusPanel: {
-      backgroundColor: '#f9fafb',
-      padding: '1rem',
-      borderRadius: '8px',
-      border: '1px solid #e5e7eb'
+    activityTitle: {
+      fontSize: '1.25rem',
+      fontWeight: 'bold',
+      color: '#1e293b',
+      marginBottom: '1rem'
     },
-    statusRow: {
+    activityItem: {
       display: 'flex',
       justifyContent: 'space-between',
-      alignItems: 'center'
-    },
-    button: {
-      display: 'flex',
       alignItems: 'center',
-      gap: '0.5rem',
-      padding: '0.5rem 1rem',
-      borderRadius: '8px',
-      border: 'none',
-      fontWeight: '500',
-      cursor: 'pointer',
-      fontSize: '0.875rem',
-      backgroundColor: isTrading ? '#ef4444' : '#22c55e',
-      color: 'white',
-      disabled: isUpdating
+      padding: '0.75rem 0',
+      borderBottom: '1px solid #f1f5f9'
     },
-    tradingInfo: {
-      marginTop: '0.75rem',
+    activityText: {
       fontSize: '0.875rem',
-      color: '#6b7280'
+      color: '#64748b'
     },
-    welcomeCard: {
-      backgroundColor: '#dbeafe',
-      border: '1px solid #93c5fd',
+    activityTime: {
+      fontSize: '0.75rem',
+      color: '#94a3b8'
+    },
+    comingSoonCard: {
+      backgroundColor: 'white',
+      padding: '4rem 2rem',
       borderRadius: '12px',
-      padding: '1rem',
-      marginBottom: '2rem'
+      border: '1px solid #e2e8f0',
+      textAlign: 'center',
+      color: '#64748b'
     },
-    welcomeText: {
-      color: '#1e40af',
+    comingSoonIcon: {
+      fontSize: '3rem',
+      marginBottom: '1rem'
+    },
+    comingSoonTitle: {
+      fontSize: '1.5rem',
+      fontWeight: 'bold',
+      color: '#1e293b',
+      marginBottom: '0.5rem'
+    },
+    comingSoonText: {
+      fontSize: '1rem',
+      marginBottom: '1rem'
+    },
+    comingSoonDetails: {
       fontSize: '0.875rem',
-      fontWeight: '500'
+      color: '#94a3b8'
     }
   };
 
-  // Show loading spinner on initial load
-  if (isLoading && !dashboardData) {
-    return (
-      <div style={styles.container}>
-        <div style={styles.loadingOverlay}>
-          <div style={styles.loadingSpinner}></div>
+  const getCurrentPageTitle = () => {
+    const page = navigationItems.find(item => item.id === activePage);
+    return page ? page.name : 'Dashboard';
+  };
+
+  const renderDashboard = () => (
+    <div>
+      {/* Trial Banner */}
+      {trialInfo.isTrial && (
+        <div style={styles.trialBanner}>
+          <div style={styles.trialText}>
+            🎁 Free Trial Active - {trialInfo.daysLeft} days remaining
+          </div>
+          <button style={styles.upgradeButton}>
+            Upgrade to Premium
+          </button>
+        </div>
+      )}
+
+      {/* Stats Grid */}
+      <div style={styles.statsGrid}>
+        <div style={styles.statCard}>
+          <div style={styles.statHeader}>
+            <span style={styles.statTitle}>Account Balance</span>
+            <span style={styles.statIcon}>💰</span>
+          </div>
+          <div style={styles.statValue}>${stats.balance.toFixed(2)}</div>
+          <div style={{...styles.statChange, ...styles.statChangePositive}}>
+            ↗ +2.4% from yesterday
+          </div>
+        </div>
+
+        <div style={styles.statCard}>
+          <div style={styles.statHeader}>
+            <span style={styles.statTitle}>Total Profit</span>
+            <span style={styles.statIcon}>📈</span>
+          </div>
+          <div style={{...styles.statValue, color: '#059669'}}>${stats.totalProfit.toFixed(2)}</div>
+          <div style={{...styles.statChange, ...styles.statChangePositive}}>
+            ↗ +${stats.todayPnL.toFixed(2)} today
+          </div>
+        </div>
+
+        <div style={styles.statCard}>
+          <div style={styles.statHeader}>
+            <span style={styles.statTitle}>Success Rate</span>
+            <span style={styles.statIcon}>🎯</span>
+          </div>
+          <div style={styles.statValue}>{stats.successRate}%</div>
+          <div style={{...styles.statChange, ...styles.statChangePositive}}>
+            ↗ +1.2% this week
+          </div>
+        </div>
+
+        <div style={styles.statCard}>
+          <div style={styles.statHeader}>
+            <span style={styles.statTitle}>Active Trades</span>
+            <span style={styles.statIcon}>⚡</span>
+          </div>
+          <div style={styles.statValue}>{stats.activeTrades}</div>
+          <div style={styles.statChange}>
+            {stats.totalTrades} total trades
+          </div>
         </div>
       </div>
-    );
-  }
+
+      {/* Quick Actions */}
+      <div style={styles.quickActions}>
+        <h3 style={styles.quickActionsTitle}>Quick Actions</h3>
+        <div style={styles.actionButtons}>
+          <div style={styles.actionButton} onClick={() => setActivePage('trading')}>
+            <div style={styles.actionIcon}>🚀</div>
+            <div style={styles.actionText}>Start Trading HYPE</div>
+          </div>
+          <div style={styles.actionButton} onClick={() => setActivePage('wallet')}>
+            <div style={styles.actionIcon}>💳</div>
+            <div style={styles.actionText}>Manage Wallet</div>
+          </div>
+          <div style={styles.actionButton} onClick={() => setActivePage('analytics')}>
+            <div style={styles.actionIcon}>📊</div>
+            <div style={styles.actionText}>View Analytics</div>
+          </div>
+          <div style={styles.actionButton} onClick={() => setActivePage('settings')}>
+            <div style={styles.actionIcon}>⚙️</div>
+            <div style={styles.actionText}>Settings</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Activity */}
+      <div style={styles.recentActivity}>
+        <h3 style={styles.activityTitle}>Recent Activity</h3>
+        <div style={styles.activityItem}>
+          <span style={styles.activityText}>🟢 HYPE/USDT trade completed - Profit: $81.58</span>
+          <span style={styles.activityTime}>2 minutes ago</span>
+        </div>
+        <div style={styles.activityItem}>
+          <span style={styles.activityText}>📈 Steady Climb strategy activated on HYPE</span>
+          <span style={styles.activityTime}>15 minutes ago</span>
+        </div>
+        <div style={styles.activityItem}>
+          <span style={styles.activityText}>💰 Yield wallet updated - New balance: $85.63</span>
+          <span style={styles.activityTime}>1 hour ago</span>
+        </div>
+        <div style={styles.activityItem}>
+          <span style={styles.activityText}>⚡ Trading bot started - HYPE/USDT selected</span>
+          <span style={styles.activityTime}>2 hours ago</span>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderPageContent = () => {
+    switch (activePage) {
+      case 'dashboard':
+        return renderDashboard();
+      
+      case 'trading':
+        return <LiveTradingPage user={user} />;
+      
+      case 'analytics':
+        return (
+          <div style={styles.comingSoonCard}>
+            <div style={styles.comingSoonIcon}>📈</div>
+            <h2 style={styles.comingSoonTitle}>Performance Analytics</h2>
+            <p style={styles.comingSoonText}>Advanced charts and performance metrics</p>
+            <p style={styles.comingSoonDetails}>
+              Interactive profit/loss charts • Success rate visualization • Strategy comparison • Real-time performance tracking
+            </p>
+          </div>
+        );
+      
+      case 'wallet':
+        return (
+          <div style={styles.comingSoonCard}>
+            <div style={styles.comingSoonIcon}>💰</div>
+            <h2 style={styles.comingSoonTitle}>Wallet Management</h2>
+            <p style={styles.comingSoonText}>Complete balance and transaction management</p>
+            <p style={styles.comingSoonDetails}>
+              Balance overview • Transaction history • Deposit/withdrawal • Yield wallet tracking • Profit distribution
+            </p>
+          </div>
+        );
+      
+      case 'history':
+        return (
+          <div style={styles.comingSoonCard}>
+            <div style={styles.comingSoonIcon}>📋</div>
+            <h2 style={styles.comingSoonTitle}>Trading History</h2>
+            <p style={styles.comingSoonText}>Complete trade records and detailed reports</p>
+            <p style={styles.comingSoonDetails}>
+              Trade logs • Performance reports • Export functionality • Advanced filtering • Profit/loss analysis
+            </p>
+          </div>
+        );
+      
+      case 'settings':
+        return (
+          <div style={styles.comingSoonCard}>
+            <div style={styles.comingSoonIcon}>⚙️</div>
+            <h2 style={styles.comingSoonTitle}>Account Settings</h2>
+            <p style={styles.comingSoonText}>User preferences and trading configuration</p>
+            <p style={styles.comingSoonDetails}>
+              Profile management • Trading preferences • API key settings • Notification controls • Security options
+            </p>
+          </div>
+        );
+      
+      case 'academy':
+        return (
+          <div style={styles.comingSoonCard}>
+            <div style={styles.comingSoonIcon}>🎓</div>
+            <h2 style={styles.comingSoonTitle}>Trading Academy</h2>
+            <p style={styles.comingSoonText}>Educational content and tutorials</p>
+            <p style={styles.comingSoonDetails}>
+              Strategy guides • Risk management tutorials • Market analysis lessons • Video courses • Trading tips
+            </p>
+          </div>
+        );
+      
+      case 'support':
+        return (
+          <div style={styles.comingSoonCard}>
+            <div style={styles.comingSoonIcon}>📞</div>
+            <h2 style={styles.comingSoonTitle}>Support Center</h2>
+            <p style={styles.comingSoonText}>Help documentation and contact options</p>
+            <p style={styles.comingSoonDetails}>
+              FAQ section • Live chat support • Ticket system • Documentation • Video tutorials • Community forum
+            </p>
+          </div>
+        );
+      
+      default:
+        return renderDashboard();
+    }
+  };
 
   return (
     <div style={styles.container}>
-      {/* Navigation */}
-      <nav style={styles.nav}>
-        <div style={styles.navContent}>
-          <div style={styles.logo}>
-            <div style={styles.logoIcon}>V</div>
-            <span style={styles.logoText}>Voltex Profits</span>
-          </div>
-          <div style={styles.userSection}>
-            <div style={styles.statusIndicator}>
-              <div style={styles.statusDot}></div>
-              {isTrading ? 'Trading Active' : 'Trading Stopped'}
-            </div>
-            <span style={styles.username}>
-              {user?.username || 'Demo User'}
-            </span>
-            <button 
-              onClick={onLogout}
-              style={styles.logoutButton}
-              onMouseOver={(e) => e.target.style.backgroundColor = '#dc2626'}
-              onMouseOut={(e) => e.target.style.backgroundColor = '#ef4444'}
+      {/* Sidebar */}
+      <div style={styles.sidebar}>
+        <div style={styles.sidebarHeader}>
+          <div style={styles.logo}>V</div>
+          <span style={styles.logoText}>Voltex Profits</span>
+        </div>
+        
+        <nav style={styles.navigation}>
+          {navigationItems.map(item => (
+            <div
+              key={item.id}
+              style={{
+                ...styles.navItem,
+                ...(activePage === item.id ? styles.navItemActive : {})
+              }}
+              onClick={() => setActivePage(item.id)}
             >
+              <span style={styles.navIcon}>{item.icon}</span>
+              <div>
+                <div style={styles.navText}>{item.name}</div>
+                <div style={styles.navDescription}>{item.description}</div>
+              </div>
+              {item.badge && (
+                <span style={styles.navBadge}>{item.badge}</span>
+              )}
+            </div>
+          ))}
+        </nav>
+      </div>
+
+      {/* Main Content */}
+      <div style={styles.mainContent}>
+        {/* Header */}
+        <div style={styles.header}>
+          <div style={styles.headerLeft}>
+            <button
+              style={styles.menuButton}
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+            >
+              ☰
+            </button>
+            <h1 style={styles.headerTitle}>{getCurrentPageTitle()}</h1>
+          </div>
+          
+          <div style={styles.headerRight}>
+            <span style={styles.statusBadge}>🔴 Trading Stopped</span>
+            <div style={styles.userInfo}>
+              Welcome, {user?.username || 'User'}
+            </div>
+            <button style={styles.logoutButton} onClick={onLogout}>
               Logout
             </button>
           </div>
         </div>
-      </nav>
 
-      {/* Main Content */}
-      <div style={styles.main}>
-        {/* Error Banner */}
-        {error && (
-          <div style={styles.errorBanner}>
-            {error}
-          </div>
-        )}
-
-        {/* Welcome Message */}
-        {user && (
-          <div style={styles.welcomeCard}>
-            <p style={styles.welcomeText}>
-              🎉 Welcome to Voltex Profits, {user.username}! Your account is connected to {user.trading?.exchange || 'your exchange'} and ready for automated trading.
-            </p>
-          </div>
-        )}
-
-        {/* Header */}
-        <div style={styles.header}>
-          <h1 style={styles.title}>Live Trading Dashboard</h1>
-          <div style={styles.subtitle}>
-            <span>Real-time data from your trading bot</span>
-            <button onClick={refreshData} style={styles.refreshButton}>
-              🔄 Refresh
-            </button>
-          </div>
+        {/* Page Content */}
+        <div style={styles.content}>
+          {renderPageContent()}
         </div>
-
-        {/* Stats Cards */}
-        <div style={styles.statsGrid}>
-          <div style={styles.statCard}>
-            <div style={styles.statHeader}>Account Balance</div>
-            <div style={styles.statValue}>
-              ${dashboardData?.trading?.accountBalance?.toFixed(2) || '0.00'}
-            </div>
-          </div>
-          <div style={styles.statCard}>
-            <div style={styles.statHeader}>Total Profit</div>
-            <div style={styles.profitValue}>
-              ${dashboardData?.stats?.totalProfit?.toFixed(2) || '0.00'}
-            </div>
-          </div>
-          <div style={styles.statCard}>
-            <div style={styles.statHeader}>Success Rate</div>
-            <div style={styles.statValue}>
-              {dashboardData?.stats?.successRate || '0'}%
-            </div>
-          </div>
-          <div style={styles.statCard}>
-            <div style={styles.statHeader}>Yield Wallet</div>
-            <div style={{ ...styles.statValue, color: '#ea580c' }}>
-              ${dashboardData?.yieldWallet?.balance?.toFixed(2) || '0.00'}
-            </div>
-          </div>
-        </div>
-
-        {/* Trading Controls */}
-        <div style={styles.tradingPanel}>
-          <h2 style={styles.panelTitle}>Live Trading Controls</h2>
-          
-          <div style={styles.formGrid}>
-            <div>
-              <label style={styles.label}>Trading Pair</label>
-              <select 
-                style={styles.select}
-                value={selectedPair}
-                onChange={(e) => handleSettingsChange('tradingPair', e.target.value)}
-              >
-                {cryptoPairs.map(pair => (
-                  <option key={pair} value={pair}>{pair}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label style={styles.label}>Strategy</label>
-              <select 
-                style={styles.select}
-                value={selectedStrategy}
-                onChange={(e) => handleSettingsChange('strategy', e.target.value)}
-              >
-                {strategies.map(strategy => (
-                  <option key={strategy.value} value={strategy.value}>
-                    {strategy.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div style={styles.statusPanel}>
-            <div style={styles.statusRow}>
-              <div style={styles.statusIndicator}>
-                <div style={styles.statusDot}></div>
-                <span style={styles.statusText}>
-                  Status: {isTrading ? 'Active Trading' : 'Stopped'}
-                </span>
-              </div>
-              <button 
-                style={{
-                  ...styles.button,
-                  opacity: isUpdating ? 0.5 : 1,
-                  cursor: isUpdating ? 'not-allowed' : 'pointer'
-                }}
-                onClick={handleTradingToggle}
-                disabled={isUpdating}
-              >
-                <span>{isUpdating ? '⏳' : (isTrading ? '⏸️' : '▶️')}</span>
-                <span>
-                  {isUpdating ? 'Updating...' : (isTrading ? 'Pause Trading' : 'Start Trading')}
-                </span>
-              </button>
-            </div>
-            
-            {isTrading && (
-              <div style={styles.tradingInfo}>
-                <p>Current Martingale Level: <strong>{dashboardData?.stats?.currentMartingaleLevel || 0}</strong></p>
-                <p>Total Trades: <strong>{dashboardData?.stats?.totalTrades || 0}</strong></p>
-                <p>Selected Strategy: <strong>{selectedStrategy === 'steady_climb' ? 'Steady Climb (Conservative)' : 'Power Surge (Aggressive)'}</strong></p>
-                <p>Exchange: <strong>{user?.trading?.exchange || 'Not set'}</strong></p>
-                <p>Daily P&L: <strong style={{color: dashboardData?.stats?.dailyPnL > 0 ? '#16a34a' : '#ef4444'}}>
-                  ${dashboardData?.stats?.dailyPnL || '0.00'}
-                </strong></p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Recent Trades */}
-        {recentTrades.length > 0 && (
-          <div style={styles.tradingPanel}>
-            <h2 style={styles.panelTitle}>Recent Trades</h2>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
-                    <th style={{ textAlign: 'left', padding: '0.75rem', fontSize: '0.875rem', color: '#6b7280' }}>Pair</th>
-                    <th style={{ textAlign: 'left', padding: '0.75rem', fontSize: '0.875rem', color: '#6b7280' }}>Side</th>
-                    <th style={{ textAlign: 'left', padding: '0.75rem', fontSize: '0.875rem', color: '#6b7280' }}>Amount</th>
-                    <th style={{ textAlign: 'left', padding: '0.75rem', fontSize: '0.875rem', color: '#6b7280' }}>P&L</th>
-                    <th style={{ textAlign: 'left', padding: '0.75rem', fontSize: '0.875rem', color: '#6b7280' }}>Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentTrades.map(trade => (
-                    <tr key={trade.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                      <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>{trade.symbol}</td>
-                      <td style={{ padding: '0.75rem' }}>
-                        <span style={{
-                          padding: '0.25rem 0.5rem',
-                          borderRadius: '4px',
-                          fontSize: '0.75rem',
-                          fontWeight: '500',
-                          backgroundColor: trade.side === 'buy' ? '#dcfce7' : '#fee2e2',
-                          color: trade.side === 'buy' ? '#166534' : '#991b1b'
-                        }}>
-                          {trade.side.toUpperCase()}
-                        </span>
-                      </td>
-                      <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>{trade.quantity}</td>
-                      <td style={{ padding: '0.75rem' }}>
-                        <span style={{
-                          fontSize: '0.875rem',
-                          fontWeight: '500',
-                          color: parseFloat(trade.pnl) >= 0 ? '#16a34a' : '#ef4444'
-                        }}>
-                          ${parseFloat(trade.pnl) >= 0 ? '+' : ''}{trade.pnl}
-                        </span>
-                      </td>
-                      <td style={{ padding: '0.75rem', fontSize: '0.875rem', color: '#6b7280' }}>
-                        {new Date(trade.timestamp).toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
