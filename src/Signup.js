@@ -91,11 +91,15 @@ function Signup({ onSignup, switchToLogin }) {
     setIsLoading(true);
     
     try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://voltex-profits-backend.onrender.com';
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Accept: 'application/json',
         },
+        mode: 'cors',
         body: JSON.stringify({
           username: formData.username,
           email: formData.email,
