@@ -1,289 +1,134 @@
 
 import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { loginUser } from '../services/api';
 
-function Login({ onLogin, switchToSignup }) {
+const Login = () => {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
-  const [errors, setErrors] = useState({});
-  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors = {};
-
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
-    }
-
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!validateForm()) return;
+    setLoading(true);
+    setError('');
 
-    setIsLoading(true);
-    
     try {
-      // API call to backend
-      const response = await fetch('http://localhost:5000/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // Store token and user data
-        localStorage.setItem('token', data.token);
+      console.log('Attempting login with:', formData.email);
+      
+      // Use the api service instead of direct fetch to localhost
+      const data = await loginUser(formData);
+      
+      console.log('Login response:', data);
+      
+      if (data.success) {
+        // Store user data
         localStorage.setItem('user', JSON.stringify(data.user));
-        onLogin(data.user);
+        localStorage.setItem('token', data.token);
+        
+        console.log('Login successful, redirecting to dashboard');
+        
+        // Redirect to dashboard
+        navigate('/dashboard');
       } else {
-        setErrors({ submit: data.message || 'Login failed' });
+        setError(data.message || 'Login failed');
       }
     } catch (error) {
       console.error('Login error:', error);
-      setErrors({ submit: 'Network error. Please try again.' });
+      setError('Network error. Please try again.');
     } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const styles = {
-    container: {
-      minHeight: '100vh',
-      backgroundColor: '#f9fafb',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '1rem'
-    },
-    card: {
-      backgroundColor: 'white',
-      borderRadius: '16px',
-      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-      border: '1px solid #f3f4f6',
-      padding: '2rem',
-      width: '100%',
-      maxWidth: '400px'
-    },
-    header: {
-      textAlign: 'center',
-      marginBottom: '2rem'
-    },
-    logo: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: '0.5rem',
-      marginBottom: '1rem'
-    },
-    logoIcon: {
-      width: '40px',
-      height: '40px',
-      background: 'linear-gradient(45deg, #3b82f6, #8b5cf6)',
-      borderRadius: '12px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      color: 'white',
-      fontWeight: 'bold',
-      fontSize: '1.25rem'
-    },
-    logoText: {
-      fontSize: '1.5rem',
-      fontWeight: 'bold',
-      color: '#111827'
-    },
-    title: {
-      fontSize: '1.875rem',
-      fontWeight: 'bold',
-      color: '#111827',
-      marginBottom: '0.5rem'
-    },
-    subtitle: {
-      color: '#6b7280'
-    },
-    form: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '1.5rem'
-    },
-    inputGroup: {
-      display: 'flex',
-      flexDirection: 'column'
-    },
-    label: {
-      fontSize: '0.875rem',
-      fontWeight: '500',
-      color: '#374151',
-      marginBottom: '0.5rem'
-    },
-    input: {
-      width: '100%',
-      padding: '0.75rem',
-      border: '1px solid #d1d5db',
-      borderRadius: '8px',
-      fontSize: '0.875rem',
-      outline: 'none'
-    },
-    inputError: {
-      borderColor: '#ef4444'
-    },
-    error: {
-      fontSize: '0.75rem',
-      color: '#ef4444',
-      marginTop: '0.25rem'
-    },
-    button: {
-      width: '100%',
-      background: 'linear-gradient(45deg, #3b82f6, #8b5cf6)',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      padding: '0.75rem',
-      fontSize: '0.875rem',
-      fontWeight: '500',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: '0.5rem'
-    },
-    buttonDisabled: {
-      opacity: 0.5,
-      cursor: 'not-allowed'
-    },
-    footer: {
-      textAlign: 'center',
-      marginTop: '1.5rem'
-    },
-    link: {
-      color: '#3b82f6',
-      textDecoration: 'none',
-      fontWeight: '500',
-      cursor: 'pointer'
+      setLoading(false);
     }
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <div style={styles.header}>
-          <div style={styles.logo}>
-            <div style={styles.logoIcon}>V</div>
-            <span style={styles.logoText}>Voltex Profits</span>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div>
+          <div className="mx-auto h-12 w-auto flex items-center justify-center">
+            <h2 className="text-3xl font-extrabold text-gray-900">
+              Voltex Profits
+            </h2>
           </div>
-          <h1 style={styles.title}>Welcome Back</h1>
-          <p style={styles.subtitle}>Sign in to your trading dashboard</p>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Sign in to your account
+          </h2>
         </div>
-
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Email Address</label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              style={{
-                ...styles.input,
-                ...(errors.email ? styles.inputError : {})
-              }}
-              placeholder="Enter your email"
-            />
-            {errors.email && (
-              <p style={styles.error}>{errors.email}</p>
-            )}
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <div className="rounded-md shadow-sm -space-y-px">
+            <div>
+              <label htmlFor="email" className="sr-only">
+                Email address
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                placeholder="Email address"
+                value={formData.email}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <label htmlFor="password" className="sr-only">
+                Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                placeholder="Password"
+                value={formData.password}
+                onChange={handleChange}
+              />
+            </div>
           </div>
 
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Password</label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleInputChange}
-              style={{
-                ...styles.input,
-                ...(errors.password ? styles.inputError : {})
-              }}
-              placeholder="Enter your password"
-            />
-            {errors.password && (
-              <p style={styles.error}>{errors.password}</p>
-            )}
-          </div>
-
-          {errors.submit && (
-            <p style={styles.error}>{errors.submit}</p>
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+              {error}
+            </div>
           )}
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            style={{
-              ...styles.button,
-              ...(isLoading ? styles.buttonDisabled : {})
-            }}
-          >
-            {isLoading ? (
-              <>
-                <div style={{
-                  width: '16px',
-                  height: '16px',
-                  border: '2px solid white',
-                  borderTop: '2px solid transparent',
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite'
-                }}></div>
-                <span>Signing In...</span>
-              </>
-            ) : (
-              'Sign In'
-            )}
-          </button>
+          <div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-400"
+            >
+              {loading ? 'Signing in...' : 'Sign in'}
+            </button>
+          </div>
 
-          <div style={styles.footer}>
-            <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-              Don't have an account?{' '}
-              <span style={styles.link} onClick={switchToSignup}>
-                Sign up
-              </span>
-            </p>
+          <div className="text-center">
+            <Link
+              to="/register"
+              className="font-medium text-indigo-600 hover:text-indigo-500"
+            >
+              Don't have an account? Sign up
+            </Link>
           </div>
         </form>
       </div>
     </div>
   );
-}
+};
 
 export default Login;
