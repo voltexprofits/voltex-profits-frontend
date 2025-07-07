@@ -91,7 +91,7 @@ function Signup({ onSignup, switchToLogin }) {
     setIsLoading(true);
     
     try {onrender.com
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://44.211.124.173:5000';
+      const API_BASE_URL = 'http://44.211.124.173:5000';
 
       const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: 'POST',

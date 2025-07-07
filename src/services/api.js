@@ -1,6 +1,7 @@
 
 // Use environment variable from Vercel, fallback to hardcoded URL
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://44.211.124.173:5000';
+// Simple, foolproof version
+const API_BASE_URL = 'http://44.211.124.173:5000';
 
 // Log the API URL for debugging
 console.log('API Base URL:', API_BASE_URL);
