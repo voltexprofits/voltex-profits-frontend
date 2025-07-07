@@ -480,16 +480,16 @@ function LiveTradingPage({ user }) {
                     <span style={styles.statValue}>0.1% ({formatCurrency(capitalBaseAmount)})</span>
                   </div>
                   <div style={styles.strategyStat}>
-                    <span style={styles.statLabel}>Leverage:</span>
-                    <span style={styles.statValue}>25x 🔒</span>
-                  </div>
-                  <div style={styles.strategyStat}>
-                    <span style={styles.statLabel}>Max Levels:</span>
-                    <span style={styles.statValue}>{strategy.maxLevels} 🔒</span>
+                    <span style={styles.statLabel}>Risk Level:</span>
+                    <span style={styles.statValue}>{strategy.riskLevel}</span>
                   </div>
                   <div style={styles.strategyStat}>
                     <span style={styles.statLabel}>Expected:</span>
                     <span style={styles.statValue}>{strategy.expectedMonthly}</span>
+                  </div>
+                  <div style={styles.strategyStat}>
+                    <span style={styles.statLabel}>System:</span>
+                    <span style={styles.statValue}>Proprietary 🔒</span>
                   </div>
                 </div>
               </div>
@@ -557,25 +557,24 @@ function LiveTradingPage({ user }) {
             </div>
           </div>
 
-          {/* Martingale Progression Display */}
+          {/* Strategy Security Notice */}
           <div style={styles.martingaleDisplay}>
             <div style={styles.martingaleTitle}>
-              📈 {currentStrategy.name} Progression (LOCKED)
-            </div>
-            <div style={styles.martingaleLevels}>
-              {currentStrategy.martingaleMultipliers.map((multiplier, index) => (
-                <div key={index} style={styles.martingaleLevel}>
-                  L{index + 1}: {multiplier}x
-                </div>
-              ))}
+              🔒 Proprietary Strategy Protection
             </div>
             <div style={{
-              fontSize: '11px',
+              textAlign: 'center',
+              padding: '20px',
               color: '#64748b',
-              marginTop: '8px',
-              textAlign: 'center'
+              fontSize: '14px'
             }}>
-              Position sizes: {formatCurrency(calculatePositionSize(1, selectedStrategy))} → {formatCurrency(calculatePositionSize(15, selectedStrategy))}
+              <div style={{ fontSize: '24px', marginBottom: '8px' }}>🛡️</div>
+              <div style={{ fontWeight: '600', marginBottom: '4px' }}>
+                Strategy Details Protected
+              </div>
+              <div style={{ fontSize: '12px' }}>
+                Martingale progression is proprietary and optimized for maximum performance
+              </div>
             </div>
           </div>
 
