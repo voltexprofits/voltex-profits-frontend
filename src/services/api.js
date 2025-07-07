@@ -1,11 +1,9 @@
 
-// Use environment variable from Vercel, fallback to hardcoded URL
-// Simple, foolproof version
+// Simple, hardcoded API configuration - no environment variables
 const API_BASE_URL = 'http://44.211.124.173:5000';
 
 // Log the API URL for debugging
 console.log('API Base URL:', API_BASE_URL);
-console.log('Environment Variable:', process.env.REACT_APP_API_URL);
 
 // Get auth token from localStorage
 const getAuthToken = () => {
@@ -141,10 +139,27 @@ export const dashboardAPI = {
 export const tradingAPI = {
   getStatus: () => apiCall('/api/trading/status'),
   
-  toggleTrading: (isActive) => apiCall('/api/trading/toggle', {
+  start: (pair, strategy) => apiCall('/api/trading/start', {
     method: 'POST',
-    body: JSON.stringify({ isActive }),
+    body: JSON.stringify({ pair, strategy }),
   }),
+  
+  stop: () => apiCall('/api/trading/stop', {
+    method: 'POST',
+  }),
+  
+  emergencyStop: () => apiCall('/api/trading/emergency-stop', {
+    method: 'POST',
+  }),
+  
+  connect: (exchangeData) => apiCall('/api/trading/connect', {
+    method: 'POST',
+    body: JSON.stringify(exchangeData),
+  }),
+  
+  getBalance: () => apiCall('/api/trading/balance'),
+  
+  getPositions: () => apiCall('/api/trading/positions'),
 };
 
 // Payment API calls
@@ -153,6 +168,11 @@ export const paymentAPI = {
   verifyCryptoPayment: (paymentData) => apiCall('/api/payments/verify-crypto', {
     method: 'POST',
     body: JSON.stringify(paymentData),
+  }),
+  
+  createPayment: (amount, currency) => apiCall('/api/payments/create', {
+    method: 'POST',
+    body: JSON.stringify({ amount, currency }),
   }),
 };
 
