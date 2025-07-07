@@ -94,13 +94,11 @@ function SettingsPage({ user }) {
     setTestingConnection(true);
     
     try {
-      const apiUrl = window.location.hostname === 'www.voltexprofits.com' 
-        ? 'https://44.211.124.173:5000'
-        : 'http://localhost:5000';
+      const API_BASE_URL = 'http://44.211.124.173:5000';
       
-      console.log('🔗 Connecting to:', apiUrl);
+      console.log('🔗 Connecting to:', API_BASE_URL);
       
-      const response = await fetch(`${apiUrl}/api/trading/connect`, {
+      const response = await fetch(`${API_BASE_URL}/api/trading/connect`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

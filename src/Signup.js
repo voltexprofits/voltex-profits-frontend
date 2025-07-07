@@ -7,7 +7,7 @@ function Signup({ onSignup, switchToLogin }) {
     email: '',
     password: '',
     confirmPassword: '',
-    exchange: 'bybit',
+    exchange: 'okx',
     apiKey: '',
     apiSecret: '',
     strategy: 'steady_climb',
@@ -17,6 +17,7 @@ function Signup({ onSignup, switchToLogin }) {
   const [isLoading, setIsLoading] = useState(false);
 
   const exchanges = [
+    { value: 'okx', name: 'OKX (Recommended)' },
     { value: 'bybit', name: 'Bybit' },
     { value: 'binance', name: 'Binance' },
     { value: 'bitget', name: 'Bitget' }
@@ -67,14 +68,6 @@ function Signup({ onSignup, switchToLogin }) {
       newErrors.confirmPassword = 'Passwords do not match';
     }
 
-    if (!formData.apiKey.trim()) {
-      newErrors.apiKey = 'API Key is required';
-    }
-
-    if (!formData.apiSecret.trim()) {
-      newErrors.apiSecret = 'API Secret is required';
-    }
-
     if (!formData.agreeToTerms) {
       newErrors.agreeToTerms = 'You must agree to the terms and conditions';
     }
@@ -90,7 +83,7 @@ function Signup({ onSignup, switchToLogin }) {
 
     setIsLoading(true);
     
-    try {onrender.com
+    try {
       const API_BASE_URL = 'http://44.211.124.173:5000';
 
       const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
@@ -105,8 +98,8 @@ function Signup({ onSignup, switchToLogin }) {
           email: formData.email,
           password: formData.password,
           exchange: formData.exchange,
-          apiKey: formData.apiKey,
-          apiSecret: formData.apiSecret,
+          apiKey: formData.apiKey || '',
+          apiSecret: formData.apiSecret || '',
           strategy: formData.strategy
         }),
       });
@@ -283,6 +276,12 @@ function Signup({ onSignup, switchToLogin }) {
       fontSize: '0.75rem',
       color: '#15803d',
       lineHeight: '1.4'
+    },
+    optionalNote: {
+      fontSize: '0.75rem',
+      color: '#6b7280',
+      fontStyle: 'italic',
+      marginTop: '0.25rem'
     }
   };
 
@@ -369,7 +368,7 @@ function Signup({ onSignup, switchToLogin }) {
 
           <div style={styles.row}>
             <div style={styles.inputGroup}>
-              <label style={styles.label}>Exchange</label>
+              <label style={styles.label}>Preferred Exchange</label>
               <select
                 name="exchange"
                 value={formData.exchange}
@@ -402,35 +401,28 @@ function Signup({ onSignup, switchToLogin }) {
           </div>
 
           <div style={styles.inputGroup}>
-            <label style={styles.label}>API Key</label>
+            <label style={styles.label}>API Key (Optional)</label>
             <input
               type="text"
               name="apiKey"
               value={formData.apiKey}
               onChange={handleInputChange}
-              style={{
-                ...styles.input,
-                ...(errors.apiKey ? styles.inputError : {})
-              }}
-              placeholder="Enter your API key"
+              style={styles.input}
+              placeholder="You can configure this later in Settings"
             />
-            {errors.apiKey && <p style={styles.error}>{errors.apiKey}</p>}
+            <p style={styles.optionalNote}>You can start with free trial and add API keys later</p>
           </div>
 
           <div style={styles.inputGroup}>
-            <label style={styles.label}>API Secret</label>
+            <label style={styles.label}>API Secret (Optional)</label>
             <input
               type="password"
               name="apiSecret"
               value={formData.apiSecret}
               onChange={handleInputChange}
-              style={{
-                ...styles.input,
-                ...(errors.apiSecret ? styles.inputError : {})
-              }}
-              placeholder="Enter your API secret"
+              style={styles.input}
+              placeholder="You can configure this later in Settings"
             />
-            {errors.apiSecret && <p style={styles.error}>{errors.apiSecret}</p>}
           </div>
 
           <div style={styles.checkbox}>

@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 
 function CryptoPayment({ user, onSuccess, onCancel }) {
   const [paymentStatus, setPaymentStatus] = useState('pending'); // 'pending', 'paid', 'expired'
   const [timeLeft, setTimeLeft] = useState(30 * 60); // 30 minutes
-  const [paymentAddress] = useState('TN3r2edgeyXJLs54F6Re9KFiCU2KH3esw5'); // Your USDT TRC20 address
+  const [paymentAddress] = useState('TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE'); // Your USDT TRC20 address
   const [paymentAmount] = useState('15.00'); // $15 in USDT
   const [transactionId, setTransactionId] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
@@ -44,8 +43,7 @@ function CryptoPayment({ user, onSuccess, onCancel }) {
     setIsVerifying(true);
     
     try {
-      // FIXED: Use environment variable with correct fallback URL      const API_BASE_URL = 'http://44.211.124.173:5000';
-
+      const API_BASE_URL = 'http://44.211.124.173:5000';
       
       // Send transaction ID to backend for verification
       const response = await fetch(`${API_BASE_URL}/api/payments/verify-crypto`, {
