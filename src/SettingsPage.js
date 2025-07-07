@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
 function SettingsPage({ user }) {
   const [activeSection, setActiveSection] = useState('exchanges');
@@ -33,6 +33,15 @@ function SettingsPage({ user }) {
   });
 
   const [exchangeConfig, setExchangeConfig] = useState({
+    okx: {
+      enabled: true,
+      apiKey: '',
+      apiSecret: '',
+      passphrase: '',
+      testnet: false,
+      leverage: 20,
+      status: 'disconnected'
+    },
     bybit: {
       enabled: true,
       apiKey: '',
@@ -45,7 +54,7 @@ function SettingsPage({ user }) {
       enabled: false,
       apiKey: '',
       apiSecret: '',
-      testnet: true,
+      testnet: false,
       leverage: 20,
       status: 'disconnected'
     },
@@ -54,7 +63,7 @@ function SettingsPage({ user }) {
       apiKey: '',
       apiSecret: '',
       passphrase: '',
-      testnet: true,
+      testnet: false,
       leverage: 20,
       status: 'disconnected'
     }
@@ -105,14 +114,11 @@ function SettingsPage({ user }) {
         })
       });
 
-      console.log('📡 Response status:', response.status);
-
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const result = await response.json();
-      console.log('📊 API Response:', result);
       
       if (result.success) {
         setExchangeConfig(prev => ({
@@ -122,7 +128,7 @@ function SettingsPage({ user }) {
             status: 'connected'
           }
         }));
-        alert(`✅ ${selectedExchange.charAt(0).toUpperCase() + selectedExchange.slice(1)} connected successfully!\nBalance: $${result.balance || '0.00'}`);
+        alert(`✅ ${selectedExchange.toUpperCase()} connected successfully!\nBalance: $${result.balance || '0.00'}\n🚀 Ready for LIVE TRADING!`);
         setActiveModal(null);
       } else {
         alert(`❌ Connection failed: ${result.message || 'Unknown error'}`);
@@ -138,10 +144,6 @@ function SettingsPage({ user }) {
   const handleSave = (section) => {
     setIsEditing(false);
     alert(`${section} settings saved successfully!`);
-  };
-
-  const handlePasswordChange = () => {
-    setActiveModal('password');
   };
 
   const styles = {
@@ -378,6 +380,16 @@ function SettingsPage({ user }) {
       fontSize: '12px',
       color: '#92400e',
       marginTop: '12px'
+    },
+    liveWarningBox: {
+      padding: '12px',
+      background: '#fee2e2',
+      border: '1px solid #dc2626',
+      borderRadius: '6px',
+      fontSize: '12px',
+      color: '#dc2626',
+      marginTop: '12px',
+      fontWeight: '600'
     }
   };
 
@@ -388,7 +400,7 @@ function SettingsPage({ user }) {
           🔗 Exchange API Configuration
         </h3>
         <p style={{ fontSize: '14px', color: '#64748b' }}>
-          Connect your trading accounts to enable live trading with your Martingale strategies.
+          Connect your trading accounts to enable LIVE trading with your Martingale strategies.
         </p>
       </div>
 
@@ -396,7 +408,8 @@ function SettingsPage({ user }) {
         <div key={exchange} style={styles.exchangeCard}>
           <div style={styles.exchangeInfo}>
             <div style={styles.exchangeName}>
-              {exchange.charAt(0).toUpperCase() + exchange.slice(1)}
+              {exchange.toUpperCase()}
+              {exchange === 'okx' && <span style={{ color: '#10b981', marginLeft: '8px' }}>🌟 RECOMMENDED</span>}
             </div>
             <div>
               <span style={{
@@ -407,7 +420,7 @@ function SettingsPage({ user }) {
               </span>
             </div>
             <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
-              Leverage: {config.leverage}x • {config.testnet ? 'Testnet' : 'Mainnet'}
+              Leverage: {config.leverage}x • <strong style={{ color: '#dc2626' }}>LIVE TRADING</strong>
             </div>
           </div>
 
@@ -422,11 +435,20 @@ function SettingsPage({ user }) {
         </div>
       ))}
 
+      <div style={styles.liveWarningBox}>
+        <strong>🚨 LIVE TRADING WARNING:</strong><br/>
+        • You are connecting to LIVE exchanges with REAL MONEY<br/>
+        • Start with small amounts for testing<br/>
+        • Your Martingale strategies will place actual trades<br/>
+        • Monitor your account closely during initial testing
+      </div>
+
       <div style={styles.warningBox}>
-        <strong>⚠️ Security Notice:</strong><br/>
-        • <strong>Bybit:</strong> Enable "Contract Trading" + "Read Position" only<br/>
-        • <strong>Binance:</strong> Enable "Futures Trading" + "Read Account" only<br/>
-        • <strong>Bitget:</strong> Enable "Contract Trading" + "Read Account" only<br/>
+        <strong>⚠️ API Permissions Required:</strong><br/>
+        • <strong>OKX:</strong> Trade + Read permissions + Passphrase<br/>
+        • <strong>Bybit:</strong> Contract Trading + Read Position<br/>
+        • <strong>Binance:</strong> Futures Trading + Read Account<br/>
+        • <strong>Bitget:</strong> Contract Trading + Read Account<br/>
         <strong>Never enable withdrawal permissions!</strong>
       </div>
     </div>
@@ -522,92 +544,9 @@ function SettingsPage({ user }) {
     </div>
   );
 
-  const renderProfileSection = () => (
-    <div>
-      <div style={styles.formGrid}>
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Username</label>
-          <input
-            style={{ ...styles.input, ...(isEditing ? {} : styles.inputDisabled) }}
-            type="text"
-            value={profileData.username}
-            disabled={!isEditing}
-            onChange={(e) => setProfileData({ ...profileData, username: e.target.value })}
-          />
-        </div>
-
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Email Address</label>
-          <input
-            style={{ ...styles.input, ...(isEditing ? {} : styles.inputDisabled) }}
-            type="email"
-            value={profileData.email}
-            disabled={!isEditing}
-            onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-          />
-        </div>
-
-        <div style={styles.formGroup}>
-          <label style={styles.label}>First Name</label>
-          <input
-            style={{ ...styles.input, ...(isEditing ? {} : styles.inputDisabled) }}
-            type="text"
-            value={profileData.firstName}
-            disabled={!isEditing}
-            onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })}
-          />
-        </div>
-
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Last Name</label>
-          <input
-            style={{ ...styles.input, ...(isEditing ? {} : styles.inputDisabled) }}
-            type="text"
-            value={profileData.lastName}
-            disabled={!isEditing}
-            onChange={(e) => setProfileData({ ...profileData, lastName: e.target.value })}
-          />
-        </div>
-
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Timezone</label>
-          <select
-            style={{ ...styles.select, ...(isEditing ? {} : styles.inputDisabled) }}
-            value={profileData.timezone}
-            disabled={!isEditing}
-            onChange={(e) => setProfileData({ ...profileData, timezone: e.target.value })}
-          >
-            <option value="UTC+3">UTC+3 (Kenya/Nairobi)</option>
-            <option value="UTC+0">UTC+0 (London)</option>
-            <option value="UTC+1">UTC+1 (Berlin)</option>
-            <option value="UTC-5">UTC-5 (New York)</option>
-            <option value="UTC+8">UTC+8 (Singapore)</option>
-          </select>
-        </div>
-
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Country</label>
-          <select
-            style={{ ...styles.select, ...(isEditing ? {} : styles.inputDisabled) }}
-            value={profileData.country}
-            disabled={!isEditing}
-            onChange={(e) => setProfileData({ ...profileData, country: e.target.value })}
-          >
-            <option value="Kenya">Kenya</option>
-            <option value="United States">United States</option>
-            <option value="Canada">Canada</option>
-            <option value="United Kingdom">United Kingdom</option>
-            <option value="Germany">Germany</option>
-            <option value="Singapore">Singapore</option>
-          </select>
-        </div>
-      </div>
-    </div>
-  );
-
   const renderContent = () => {
     switch (activeSection) {
-      case 'profile': return renderProfileSection();
+      case 'profile': return <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>Profile section - coming soon</div>;
       case 'trading': return renderTradingSection();
       case 'exchanges': return renderExchangesSection();
       case 'assets': return <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>Assets section - coming soon</div>;
@@ -651,7 +590,7 @@ function SettingsPage({ user }) {
       <div style={styles.content}>
         <div style={styles.contentHeader}>
           <div style={styles.contentTitle}>{getCurrentSectionTitle()}</div>
-          {(activeSection === 'profile' || activeSection === 'trading') && (
+          {activeSection === 'trading' && (
             <button
               style={styles.editButton}
               onClick={() => isEditing ? handleSave(activeSection) : setIsEditing(true)}
@@ -668,7 +607,7 @@ function SettingsPage({ user }) {
         <div style={styles.modal}>
           <div style={styles.modalContent}>
             <div style={styles.modalTitle}>
-              🔗 Configure {selectedExchange?.charAt(0).toUpperCase() + selectedExchange?.slice(1)} API
+              🔗 Configure {selectedExchange?.toUpperCase()} API - LIVE TRADING
             </div>
             
             <div style={{ marginBottom: '16px' }}>
@@ -705,10 +644,10 @@ function SettingsPage({ user }) {
               />
             </div>
 
-            {selectedExchange === 'bitget' && (
+            {(selectedExchange === 'okx' || selectedExchange === 'bitget') && (
               <div style={{ marginBottom: '16px' }}>
                 <label style={styles.label}>
-                  Passphrase <span style={{ color: '#94a3b8' }}>(Optional)</span>
+                  Passphrase {selectedExchange === 'okx' ? <span style={{ color: '#dc2626' }}>(Required)</span> : <span style={{ color: '#94a3b8' }}>(Optional)</span>}
                 </label>
                 <input
                   style={styles.input}
@@ -721,17 +660,26 @@ function SettingsPage({ user }) {
                       passphrase: e.target.value
                     }
                   }))}
-                  placeholder="Enter passphrase if enabled"
+                  placeholder={selectedExchange === 'okx' ? 'Enter your passphrase (required)' : 'Enter passphrase if enabled'}
                 />
                 <p style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
-                  Only required if you enabled passphrase in Bitget API settings
+                  {selectedExchange === 'okx' ? 'OKX requires a passphrase for all API connections' : 'Only required if you enabled passphrase in Bitget API settings'}
                 </p>
               </div>
             )}
 
+            <div style={styles.liveWarningBox}>
+              <strong>🚨 LIVE TRADING CONFIRMATION:</strong><br/>
+              • This connects to REAL {selectedExchange?.toUpperCase()} account<br/>
+              • Your Martingale strategies will use REAL MONEY<br/>
+              • Start with small amounts for testing<br/>
+              • Monitor your trades closely
+            </div>
+
             <div style={styles.warningBox}>
               <strong>⚠️ Required Permissions:</strong><br/>
-              • {selectedExchange === 'bybit' ? 'Contract Trading + Read Position' : 
+              • {selectedExchange === 'okx' ? 'Trade + Read permissions (NO withdrawals)' :
+                 selectedExchange === 'bybit' ? 'Contract Trading + Read Position' : 
                  selectedExchange === 'binance' ? 'Futures Trading + Read Account' : 
                  'Contract Trading + Read Account'}<br/>
               <strong>Never enable withdrawal permissions!</strong>
@@ -745,48 +693,15 @@ function SettingsPage({ user }) {
                 Cancel
               </button>
               <button
-                style={{ ...styles.button, ...styles.buttonPrimary }}
-                onClick={handleApiSubmit}
-                disabled={testingConnection || !exchangeConfig[selectedExchange]?.apiKey || !exchangeConfig[selectedExchange]?.apiSecret}
-              >
-                {testingConnection ? 'Connecting...' : 'Connect'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeModal === 'password' && (
-        <div style={styles.modal}>
-          <div style={styles.modalContent}>
-            <div style={styles.modalTitle}>🔒 Change Password</div>
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Current Password</label>
-              <input style={styles.input} type="password" />
-            </div>
-            <div style={styles.formGroup}>
-              <label style={styles.label}>New Password</label>
-              <input style={styles.input} type="password" />
-            </div>
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Confirm New Password</label>
-              <input style={styles.input} type="password" />
-            </div>
-            <div style={styles.modalActions}>
-              <button
-                style={{ ...styles.button, ...styles.buttonSecondary }}
-                onClick={() => setActiveModal(null)}
-              >
-                Cancel
-              </button>
-              <button
-                style={{ ...styles.button, ...styles.buttonPrimary }}
-                onClick={() => {
-                  setActiveModal(null);
-                  alert('Password changed successfully!');
+                style={{ 
+                  ...styles.button, 
+                  background: '#dc2626', 
+                  color: 'white'
                 }}
+                onClick={handleApiSubmit}
+                disabled={testingConnection || !exchangeConfig[selectedExchange]?.apiKey || !exchangeConfig[selectedExchange]?.apiSecret || (selectedExchange === 'okx' && !exchangeConfig[selectedExchange]?.passphrase)}
               >
-                Update Password
+                {testingConnection ? 'Connecting...' : '🚀 Connect LIVE'}
               </button>
             </div>
           </div>
