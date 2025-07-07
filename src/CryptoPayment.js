@@ -44,8 +44,8 @@ function CryptoPayment({ user, onSuccess, onCancel }) {
     setIsVerifying(true);
     
     try {
-      // FIXED: Use environment variable with correct fallback URL
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://voltex-profits-backend.onrender.com';
+      // FIXED: Use environment variable with correct fallback URL      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://44.211.124.173:5000';
+
       
       // Send transaction ID to backend for verification
       const response = await fetch(`${API_BASE_URL}/api/payments/verify-crypto`, {

@@ -96,7 +96,7 @@ function LiveTradingPage({ user, onTradingStatusChange }) {
     try {
       if (newTradingStatus) {
         // Starting trading - call backend API
-        const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://voltex-profits-backend.onrender.com'}/api/trading/start`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://44.211.124.173:5000'}/api/trading/start`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -121,7 +121,7 @@ function LiveTradingPage({ user, onTradingStatusChange }) {
         }
       } else {
         // Stopping trading - call backend API
-        const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://voltex-profits-backend.onrender.com'}/api/trading/stop`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://44.211.124.173:5000'}/api/trading/stop`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
