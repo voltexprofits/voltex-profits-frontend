@@ -90,19 +90,60 @@ function LiveTradingPage({ user, onTradingStatusChange }) {
     }).format(amount);
   };
 
-  const handleToggleTrading = () => {
+  const handleToggleTrading = async () => {
     const newTradingStatus = !isTrading;
-    setIsTrading(newTradingStatus);
     
-    // Update the parent component's trading status
-    if (onTradingStatusChange) {
-      onTradingStatusChange(newTradingStatus);
-    }
-    
-    if (newTradingStatus) {
-      alert(`🚀 ${STRATEGIES[selectedStrategy].name} strategy activated!\n\nTrading ${selectedPair} with locked parameters:\n• Capital Base: 0.1% of balance (${formatCurrency(accountBalance * 0.001)})\n• Leverage: 25x futures\n• Martingale: ${STRATEGIES[selectedStrategy].maxLevels}-level progression\n\nAll parameters are professionally optimized and locked for maximum performance.`);
-    } else {
-      alert('🛑 Trading stopped. All positions will be closed safely.');
+    try {
+      if (newTradingStatus) {
+        // Starting trading - call backend API
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://voltex-profits-backend.onrender.com'}/api/trading/start`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({
+            pair: selectedPair,
+            strategy: selectedStrategy
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          setIsTrading(true);
+          if (onTradingStatusChange) {
+            onTradingStatusChange(true);
+          }
+          alert(`🚀 LIVE TRADING STARTED!\n\nStrategy: ${STRATEGIES[selectedStrategy].name}\nPair: ${selectedPair}\nOrder ID: ${result.orderId}\nPosition Size: ${result.amount.toFixed(2)}\nLevel: ${result.level}\n\n⚠️ REAL MONEY IS NOW BEING TRADED!`);
+        } else {
+          throw new Error(result.message);
+        }
+      } else {
+        // Stopping trading - call backend API
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://voltex-profits-backend.onrender.com'}/api/trading/stop`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          setIsTrading(false);
+          if (onTradingStatusChange) {
+            onTradingStatusChange(false);
+          }
+          alert('🛑 TRADING STOPPED!\n\nAll positions have been closed safely.\nReal trading has been terminated.');
+        } else {
+          throw new Error(result.message);
+        }
+      }
+    } catch (error) {
+      console.error('Trading toggle error:', error);
+      alert(`❌ Trading ${newTradingStatus ? 'start' : 'stop'} failed:\n\n${error.message}\n\nPlease check your API configuration in Settings.`);
     }
   };
 
