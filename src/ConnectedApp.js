@@ -8,10 +8,10 @@ import SettingsPage from './SettingsPage';
 import TradingAcademyPage from './TradingAcademyPage';
 import SupportCenterPage from './SupportCenterPage';
 
-
 function ConnectedApp({ user, onLogout }) {
   const [activePage, setActivePage] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [tradingStatus, setTradingStatus] = useState(false); // Add trading status state
   const [stats, setStats] = useState({
     balance: 3247.85,
     totalProfit: 1315.70,
@@ -193,6 +193,15 @@ function ConnectedApp({ user, onLogout }) {
       borderRadius: '20px',
       fontSize: '0.75rem',
       fontWeight: '500',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.5rem'
+    },
+    statusActive: {
+      backgroundColor: '#d1fae5',
+      color: '#065f46'
+    },
+    statusStopped: {
       backgroundColor: '#fee2e2',
       color: '#dc2626'
     },
@@ -563,7 +572,7 @@ function ConnectedApp({ user, onLogout }) {
         return renderDashboard();
       
       case 'trading':
-        return <LiveTradingPage user={user} />;
+        return <LiveTradingPage user={user} onTradingStatusChange={setTradingStatus} />;
       
       case 'wallet':
         return <WalletManagementPage user={user} />;
@@ -582,6 +591,54 @@ function ConnectedApp({ user, onLogout }) {
       
       case 'support':
         return <SupportCenterPage user={user} />;
+      
+      case 'history':
+        return (
+          <div style={styles.comingSoonCard}>
+            <div style={styles.comingSoonIcon}>📋</div>
+            <h2 style={styles.comingSoonTitle}>Trading History</h2>
+            <p style={styles.comingSoonText}>Complete trade records and detailed reports</p>
+            <p style={styles.comingSoonDetails}>
+              Multi-asset trade logs • Performance reports • Export functionality • Advanced filtering • Profit/loss analysis • All 7 trading pairs
+            </p>
+          </div>
+        );
+      
+      case 'settings':
+        return (
+          <div style={styles.comingSoonCard}>
+            <div style={styles.comingSoonIcon}>⚙️</div>
+            <h2 style={styles.comingSoonTitle}>Account Settings</h2>
+            <p style={styles.comingSoonText}>User preferences and trading configuration</p>
+            <p style={styles.comingSoonDetails}>
+              Profile management • Multi-asset trading preferences • API key settings • Notification controls • Security options • Asset allocation settings
+            </p>
+          </div>
+        );
+      
+      case 'academy':
+        return (
+          <div style={styles.comingSoonCard}>
+            <div style={styles.comingSoonIcon}>🎓</div>
+            <h2 style={styles.comingSoonTitle}>Trading Academy</h2>
+            <p style={styles.comingSoonText}>Educational content and tutorials</p>
+            <p style={styles.comingSoonDetails}>
+              Multi-asset strategy guides • Risk management tutorials • Market analysis lessons • Video courses • Trading tips • Portfolio diversification
+            </p>
+          </div>
+        );
+      
+      case 'support':
+        return (
+          <div style={styles.comingSoonCard}>
+            <div style={styles.comingSoonIcon}>📞</div>
+            <h2 style={styles.comingSoonTitle}>Support Center</h2>
+            <p style={styles.comingSoonText}>Help documentation and contact options</p>
+            <p style={styles.comingSoonDetails}>
+              FAQ section • Live chat support • Ticket system • Documentation • Video tutorials • Community forum • Multi-asset trading support
+            </p>
+          </div>
+        );
       
       default:
         return renderDashboard();
@@ -642,7 +699,12 @@ function ConnectedApp({ user, onLogout }) {
           </div>
           
           <div style={styles.headerRight}>
-            <span style={styles.statusBadge}>🔴 Trading Stopped</span>
+            <span style={{
+              ...styles.statusBadge,
+              ...(tradingStatus ? styles.statusActive : styles.statusStopped)
+            }}>
+              {tradingStatus ? '🟢 Trading Active' : '🔴 Trading Stopped'}
+            </span>
             <div style={styles.userInfo}>
               Welcome, {user?.username || 'User'}
             </div>

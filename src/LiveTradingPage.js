@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 
-function LiveTradingPage({ user }) {
+function LiveTradingPage({ user, onTradingStatusChange }) {
   const [isTrading, setIsTrading] = useState(false);
   const [selectedPair, setSelectedPair] = useState('HYPE/USDT');
   const [selectedStrategy, setSelectedStrategy] = useState('steady_climb');
@@ -91,8 +91,15 @@ function LiveTradingPage({ user }) {
   };
 
   const handleToggleTrading = () => {
-    setIsTrading(!isTrading);
-    if (!isTrading) {
+    const newTradingStatus = !isTrading;
+    setIsTrading(newTradingStatus);
+    
+    // Update the parent component's trading status
+    if (onTradingStatusChange) {
+      onTradingStatusChange(newTradingStatus);
+    }
+    
+    if (newTradingStatus) {
       alert(`🚀 ${STRATEGIES[selectedStrategy].name} strategy activated!\n\nTrading ${selectedPair} with locked parameters:\n• Capital Base: 0.1% of balance (${formatCurrency(accountBalance * 0.001)})\n• Leverage: 25x futures\n• Martingale: ${STRATEGIES[selectedStrategy].maxLevels}-level progression\n\nAll parameters are professionally optimized and locked for maximum performance.`);
     } else {
       alert('🛑 Trading stopped. All positions will be closed safely.');
