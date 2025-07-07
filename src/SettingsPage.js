@@ -95,7 +95,7 @@ function SettingsPage({ user }) {
     
     try {
       const apiUrl = window.location.hostname === 'www.voltexprofits.com' 
-        ? 'https://voltex-profits-backend.onrender.com'
+        ? 'https://44.211.124.173:5000'
         : 'http://localhost:5000';
       
       console.log('🔗 Connecting to:', apiUrl);
