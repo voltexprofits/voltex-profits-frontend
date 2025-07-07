@@ -1,18 +1,29 @@
 
 import React, { useState, useEffect } from 'react';
 import LiveTradingPage from './LiveTradingPage';
+import WalletManagementPage from './WalletManagementPage';
+import AnalyticsDashboardPage from './AnalyticsDashboardPage';
+import TradingHistoryPage from './TradingHistoryPage';
+import SettingsPage from './SettingsPage';
+import TradingAcademyPage from './TradingAcademyPage';
+import SupportCenterPage from './SupportCenterPage';
+
 
 function ConnectedApp({ user, onLogout }) {
   const [activePage, setActivePage] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [stats, setStats] = useState({
-    balance: 1250.75,
-    totalProfit: 342.50,
-    todayPnL: 15.32,
-    successRate: 73.5,
-    yieldWallet: 85.63,
-    activeTrades: 3,
-    totalTrades: 147
+    balance: 3247.85,
+    totalProfit: 1315.70,
+    todayPnL: 89.34,
+    successRate: 78.3,
+    yieldWallet: 198.45,
+    activeTrades: 7,
+    totalTrades: 267,
+    hypeBalance: 245.67,
+    hypeProfit: 81.58,
+    portfolioReturn: 42.8,
+    weeklyReturn: 8.5
   });
 
   // Calculate trial info
@@ -31,7 +42,7 @@ function ConnectedApp({ user, onLogout }) {
   const navigationItems = [
     { id: 'dashboard', name: 'Dashboard', icon: '🏠', description: 'Overview & Stats' },
     { id: 'trading', name: 'Trading', icon: '📊', description: 'Live Controls', badge: 'HYPE' },
-    { id: 'analytics', name: 'Analytics', icon: '📈', description: 'Performance Charts' },
+    { id: 'analytics', name: 'Analytics', icon: '📈', description: 'Performance Charts', badge: 'NEW' },
     { id: 'wallet', name: 'Wallet', icon: '💰', description: 'Balance & Transactions' },
     { id: 'history', name: 'History', icon: '📋', description: 'Trade Records' },
     { id: 'settings', name: 'Settings', icon: '⚙️', description: 'Account Preferences' },
@@ -120,13 +131,23 @@ function ConnectedApp({ user, onLogout }) {
       position: 'absolute',
       top: '0.5rem',
       right: '1rem',
-      backgroundColor: '#f59e0b',
-      color: 'white',
       fontSize: '0.625rem',
       fontWeight: '600',
       padding: '0.125rem 0.375rem',
       borderRadius: '10px',
       display: sidebarOpen ? 'block' : 'none'
+    },
+    navBadgeHype: {
+      backgroundColor: '#f59e0b',
+      color: 'white'
+    },
+    navBadgeNew: {
+      backgroundColor: '#10b981',
+      color: 'white'
+    },
+    navBadgeAnalytics: {
+      backgroundColor: '#8b5cf6',
+      color: 'white'
     },
     mainContent: {
       flex: 1,
@@ -234,6 +255,20 @@ function ConnectedApp({ user, onLogout }) {
       border: '1px solid #e2e8f0',
       boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
     },
+    portfolioStatCard: {
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      color: 'white',
+      padding: '1.5rem',
+      borderRadius: '12px',
+      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+    },
+    hypeStatCard: {
+      background: 'linear-gradient(135deg, #FF6B6B 0%, #4ECDC4 100%)',
+      color: 'white',
+      padding: '1.5rem',
+      borderRadius: '12px',
+      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+    },
     statHeader: {
       display: 'flex',
       justifyContent: 'space-between',
@@ -245,6 +280,11 @@ function ConnectedApp({ user, onLogout }) {
       fontSize: '0.875rem',
       fontWeight: '500'
     },
+    statTitleWhite: {
+      color: 'rgba(255, 255, 255, 0.9)',
+      fontSize: '0.875rem',
+      fontWeight: '500'
+    },
     statIcon: {
       fontSize: '1.5rem'
     },
@@ -253,12 +293,20 @@ function ConnectedApp({ user, onLogout }) {
       fontWeight: 'bold',
       color: '#1e293b'
     },
+    statValueWhite: {
+      fontSize: '2rem',
+      fontWeight: 'bold',
+      color: 'white'
+    },
     statChange: {
       fontSize: '0.875rem',
       marginTop: '0.5rem'
     },
     statChangePositive: {
       color: '#059669'
+    },
+    statChangeWhite: {
+      color: 'rgba(255, 255, 255, 0.9)'
     },
     statChangeNegative: {
       color: '#dc2626'
@@ -375,14 +423,38 @@ function ConnectedApp({ user, onLogout }) {
 
       {/* Stats Grid */}
       <div style={styles.statsGrid}>
+        {/* Portfolio Performance Card */}
+        <div style={styles.portfolioStatCard}>
+          <div style={styles.statHeader}>
+            <span style={styles.statTitleWhite}>🏆 Portfolio Return</span>
+            <span style={styles.statIcon}>📈</span>
+          </div>
+          <div style={styles.statValueWhite}>{stats.portfolioReturn.toFixed(1)}%</div>
+          <div style={styles.statChangeWhite}>
+            ↗ +{stats.weeklyReturn}% this week
+          </div>
+        </div>
+
+        {/* HYPE Performance Card */}
+        <div style={styles.hypeStatCard}>
+          <div style={styles.statHeader}>
+            <span style={styles.statTitleWhite}>🔥 HYPE Performance</span>
+            <span style={styles.statIcon}>🚀</span>
+          </div>
+          <div style={styles.statValueWhite}>${stats.hypeBalance.toFixed(2)}</div>
+          <div style={styles.statChangeWhite}>
+            ↗ +${stats.hypeProfit.toFixed(2)} today (+67.8%)
+          </div>
+        </div>
+
         <div style={styles.statCard}>
           <div style={styles.statHeader}>
-            <span style={styles.statTitle}>Account Balance</span>
+            <span style={styles.statTitle}>Total Portfolio</span>
             <span style={styles.statIcon}>💰</span>
           </div>
           <div style={styles.statValue}>${stats.balance.toFixed(2)}</div>
           <div style={{...styles.statChange, ...styles.statChangePositive}}>
-            ↗ +2.4% from yesterday
+            ↗ +5.8% from yesterday
           </div>
         </div>
 
@@ -404,7 +476,18 @@ function ConnectedApp({ user, onLogout }) {
           </div>
           <div style={styles.statValue}>{stats.successRate}%</div>
           <div style={{...styles.statChange, ...styles.statChangePositive}}>
-            ↗ +1.2% this week
+            ↗ +2.8% this week
+          </div>
+        </div>
+
+        <div style={styles.statCard}>
+          <div style={styles.statHeader}>
+            <span style={styles.statTitle}>Yield Wallet</span>
+            <span style={styles.statIcon}>🎯</span>
+          </div>
+          <div style={styles.statValue}>${stats.yieldWallet.toFixed(2)}</div>
+          <div style={{...styles.statChange, ...styles.statChangePositive}}>
+            ↗ +12.5% APY earnings
           </div>
         </div>
 
@@ -415,51 +498,59 @@ function ConnectedApp({ user, onLogout }) {
           </div>
           <div style={styles.statValue}>{stats.activeTrades}</div>
           <div style={styles.statChange}>
-            {stats.totalTrades} total trades
+            {stats.totalTrades} total trades • 7 assets
           </div>
         </div>
       </div>
 
       {/* Quick Actions */}
       <div style={styles.quickActions}>
-        <h3 style={styles.quickActionsTitle}>Quick Actions</h3>
+        <h3 style={styles.quickActionsTitle}>🚀 Quick Actions</h3>
         <div style={styles.actionButtons}>
           <div style={styles.actionButton} onClick={() => setActivePage('trading')}>
-            <div style={styles.actionIcon}>🚀</div>
-            <div style={styles.actionText}>Start Trading HYPE</div>
-          </div>
-          <div style={styles.actionButton} onClick={() => setActivePage('wallet')}>
-            <div style={styles.actionIcon}>💳</div>
-            <div style={styles.actionText}>Manage Wallet</div>
+            <div style={styles.actionIcon}>🔥</div>
+            <div style={styles.actionText}>Trade HYPE/USDT</div>
           </div>
           <div style={styles.actionButton} onClick={() => setActivePage('analytics')}>
             <div style={styles.actionIcon}>📊</div>
             <div style={styles.actionText}>View Analytics</div>
           </div>
+          <div style={styles.actionButton} onClick={() => setActivePage('wallet')}>
+            <div style={styles.actionIcon}>💰</div>
+            <div style={styles.actionText}>Manage Wallet</div>
+          </div>
           <div style={styles.actionButton} onClick={() => setActivePage('settings')}>
             <div style={styles.actionIcon}>⚙️</div>
-            <div style={styles.actionText}>Settings</div>
+            <div style={styles.actionText}>Account Settings</div>
           </div>
         </div>
       </div>
 
       {/* Recent Activity */}
       <div style={styles.recentActivity}>
-        <h3 style={styles.activityTitle}>Recent Activity</h3>
+        <h3 style={styles.activityTitle}>📋 Recent Multi-Asset Activity</h3>
         <div style={styles.activityItem}>
-          <span style={styles.activityText}>🟢 HYPE/USDT trade completed - Profit: $81.58</span>
+          <span style={styles.activityText}>🟢 BTC/USDT trade completed - Profit: +$32.67</span>
           <span style={styles.activityTime}>2 minutes ago</span>
         </div>
         <div style={styles.activityItem}>
-          <span style={styles.activityText}>📈 Steady Climb strategy activated on HYPE</span>
+          <span style={styles.activityText}>🔥 HYPE/USDT position opened - Size: $500 USDT</span>
+          <span style={styles.activityTime}>8 minutes ago</span>
+        </div>
+        <div style={styles.activityItem}>
+          <span style={styles.activityText}>📈 ETH/USDT trade completed - Profit: +$24.56</span>
           <span style={styles.activityTime}>15 minutes ago</span>
         </div>
         <div style={styles.activityItem}>
-          <span style={styles.activityText}>💰 Yield wallet updated - New balance: $85.63</span>
+          <span style={styles.activityText}>💰 Yield wallet updated - New balance: $198.45</span>
+          <span style={styles.activityTime}>45 minutes ago</span>
+        </div>
+        <div style={styles.activityItem}>
+          <span style={styles.activityText}>⚡ Multi-asset strategy activated - 7 pairs active</span>
           <span style={styles.activityTime}>1 hour ago</span>
         </div>
         <div style={styles.activityItem}>
-          <span style={styles.activityText}>⚡ Trading bot started - HYPE/USDT selected</span>
+          <span style={styles.activityText}>🟢 SOL/USDT trade completed - Profit: +$18.34</span>
           <span style={styles.activityTime}>2 hours ago</span>
         </div>
       </div>
@@ -474,77 +565,23 @@ function ConnectedApp({ user, onLogout }) {
       case 'trading':
         return <LiveTradingPage user={user} />;
       
-      case 'analytics':
-        return (
-          <div style={styles.comingSoonCard}>
-            <div style={styles.comingSoonIcon}>📈</div>
-            <h2 style={styles.comingSoonTitle}>Performance Analytics</h2>
-            <p style={styles.comingSoonText}>Advanced charts and performance metrics</p>
-            <p style={styles.comingSoonDetails}>
-              Interactive profit/loss charts • Success rate visualization • Strategy comparison • Real-time performance tracking
-            </p>
-          </div>
-        );
-      
       case 'wallet':
-        return (
-          <div style={styles.comingSoonCard}>
-            <div style={styles.comingSoonIcon}>💰</div>
-            <h2 style={styles.comingSoonTitle}>Wallet Management</h2>
-            <p style={styles.comingSoonText}>Complete balance and transaction management</p>
-            <p style={styles.comingSoonDetails}>
-              Balance overview • Transaction history • Deposit/withdrawal • Yield wallet tracking • Profit distribution
-            </p>
-          </div>
-        );
+        return <WalletManagementPage user={user} />;
+      
+      case 'analytics':
+        return <AnalyticsDashboardPage user={user} />;
       
       case 'history':
-        return (
-          <div style={styles.comingSoonCard}>
-            <div style={styles.comingSoonIcon}>📋</div>
-            <h2 style={styles.comingSoonTitle}>Trading History</h2>
-            <p style={styles.comingSoonText}>Complete trade records and detailed reports</p>
-            <p style={styles.comingSoonDetails}>
-              Trade logs • Performance reports • Export functionality • Advanced filtering • Profit/loss analysis
-            </p>
-          </div>
-        );
+        return <TradingHistoryPage user={user} />;
       
       case 'settings':
-        return (
-          <div style={styles.comingSoonCard}>
-            <div style={styles.comingSoonIcon}>⚙️</div>
-            <h2 style={styles.comingSoonTitle}>Account Settings</h2>
-            <p style={styles.comingSoonText}>User preferences and trading configuration</p>
-            <p style={styles.comingSoonDetails}>
-              Profile management • Trading preferences • API key settings • Notification controls • Security options
-            </p>
-          </div>
-        );
+        return <SettingsPage user={user} />;
       
       case 'academy':
-        return (
-          <div style={styles.comingSoonCard}>
-            <div style={styles.comingSoonIcon}>🎓</div>
-            <h2 style={styles.comingSoonTitle}>Trading Academy</h2>
-            <p style={styles.comingSoonText}>Educational content and tutorials</p>
-            <p style={styles.comingSoonDetails}>
-              Strategy guides • Risk management tutorials • Market analysis lessons • Video courses • Trading tips
-            </p>
-          </div>
-        );
+        return <TradingAcademyPage user={user} />;
       
       case 'support':
-        return (
-          <div style={styles.comingSoonCard}>
-            <div style={styles.comingSoonIcon}>📞</div>
-            <h2 style={styles.comingSoonTitle}>Support Center</h2>
-            <p style={styles.comingSoonText}>Help documentation and contact options</p>
-            <p style={styles.comingSoonDetails}>
-              FAQ section • Live chat support • Ticket system • Documentation • Video tutorials • Community forum
-            </p>
-          </div>
-        );
+        return <SupportCenterPage user={user} />;
       
       default:
         return renderDashboard();
@@ -576,7 +613,14 @@ function ConnectedApp({ user, onLogout }) {
                 <div style={styles.navDescription}>{item.description}</div>
               </div>
               {item.badge && (
-                <span style={styles.navBadge}>{item.badge}</span>
+                <span style={{
+                  ...styles.navBadge,
+                  ...(item.badge === 'HYPE' ? styles.navBadgeHype : 
+                     item.badge === 'NEW' && item.id === 'analytics' ? styles.navBadgeAnalytics : 
+                     styles.navBadgeNew)
+                }}>
+                  {item.badge}
+                </span>
               )}
             </div>
           ))}
