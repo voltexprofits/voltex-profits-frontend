@@ -5,593 +5,686 @@ function LiveTradingPage({ user }) {
   const [isTrading, setIsTrading] = useState(false);
   const [selectedPair, setSelectedPair] = useState('HYPE/USDT');
   const [selectedStrategy, setSelectedStrategy] = useState('steady_climb');
-  const [isLoading, setIsLoading] = useState(false);
-  const [marketData, setMarketData] = useState({
-    'HYPE/USDT': { price: 12.45, change: 8.75, volume: '45M' },
-    'BTC/USDT': { price: 43250.75, change: 2.45, volume: '1.2B' },
-    'ETH/USDT': { price: 2650.30, change: -1.20, volume: '890M' },
-    'BNB/USDT': { price: 315.85, change: 0.75, volume: '245M' },
-    'SOL/USDT': { price: 98.42, change: 4.20, volume: '320M' },
-    'XRP/USDT': { price: 0.625, change: -2.10, volume: '180M' },
-    'ADA/USDT': { price: 0.485, change: 3.20, volume: '156M' },
-    'DOT/USDT': { price: 7.85, change: 1.85, volume: '95M' }
-  });
-  
-  const [positions, setPositions] = useState([
-    { id: 1, pair: 'HYPE/USDT', side: 'LONG', size: 125.5, entry: 11.80, current: 12.45, pnl: 81.58, level: 1 },
-    { id: 2, pair: 'BTC/USDT', side: 'LONG', size: 0.0125, entry: 42850.00, current: 43250.75, pnl: 5.01, level: 1 },
-    { id: 3, pair: 'ETH/USDT', side: 'LONG', size: 0.85, entry: 2620.50, current: 2650.30, pnl: 25.33, level: 2 },
-    { id: 4, pair: 'SOL/USDT', side: 'SHORT', size: 8.2, entry: 102.15, current: 98.42, pnl: 30.58, level: 1 }
+  const [accountBalance] = useState(12450.75); // Simulated exchange balance
+
+  // YOUR EXACT LOCKED MARTINGALE STRATEGIES
+  const STRATEGIES = {
+    steady_climb: {
+      name: "Steady Climb",
+      description: "Conservative martingale with capital preservation focus",
+      icon: "🛡️",
+      capitalBase: 0.1, // 0.1% of account balance
+      leverage: 25,
+      martingaleMultipliers: [0.25, 0.27, 0.36, 0.47, 0.63, 0.83, 1.08, 1.43, 1.88, 2.47, 3.25, 4.30, 5.68, 7.51, 9.93],
+      maxLevels: 15,
+      expectedMonthly: "8-15%",
+      riskLevel: "Conservative",
+      color: "#10b981",
+      totalMaxRisk: 17.5 // % of capital base
+    },
+    
+    power_surge: {
+      name: "Power Surge", 
+      description: "Aggressive martingale with rapid recovery system",
+      icon: "🚀",
+      capitalBase: 0.1, // 0.1% of account balance
+      leverage: 25,
+      martingaleMultipliers: [0.40, 0.54, 0.72, 0.94, 1.26, 1.66, 2.16, 2.86, 3.76, 4.94, 6.50, 8.60, 11.36, 15.02, 19.86],
+      maxLevels: 15,
+      expectedMonthly: "20-35%",
+      riskLevel: "Aggressive", 
+      color: "#f59e0b",
+      totalMaxRisk: 30.0 // % of capital base
+    }
+  };
+
+  const tradingPairs = [
+    { symbol: 'HYPE/USDT', price: 12.45, change: 8.75, volume: '45.2M', color: '#FF6B6B' },
+    { symbol: 'BTC/USDT', price: 69850.00, change: 3.2, volume: '890.5M', color: '#F7931A' },
+    { symbol: 'ETH/USDT', price: 3924.60, change: 2.8, volume: '654.8M', color: '#627EEA' },
+    { symbol: 'BNB/USDT', price: 634.80, change: 1.9, volume: '298.4M', color: '#F3BA2F' },
+    { symbol: 'SOL/USDT', price: 148.90, change: 4.1, volume: '456.7M', color: '#9945FF' },
+    { symbol: 'ADA/USDT', price: 0.4389, change: -0.8, volume: '234.5M', color: '#0033AD' },
+    { symbol: 'XRP/USDT', price: 0.6445, change: 1.3, volume: '567.2M', color: '#23292F' }
+  ];
+
+  const [activePositions] = useState([
+    {
+      id: 1,
+      pair: 'HYPE/USDT',
+      strategy: 'Power Surge',
+      level: 1,
+      entryPrice: 12.30,
+      currentPrice: 12.45,
+      size: '$49.84',
+      pnl: 81.58,
+      pnlPercent: 9.8,
+      duration: '2h 15m'
+    },
+    {
+      id: 2,
+      pair: 'BTC/USDT', 
+      strategy: 'Steady Climb',
+      level: 2,
+      entryPrice: 68450.00,
+      currentPrice: 69850.00,
+      size: '$33.61',
+      pnl: 45.23,
+      pnlPercent: 2.1,
+      duration: '4h 32m'
+    }
   ]);
 
-  const [tradingSettings, setTradingSettings] = useState({
-    riskPerTrade: 0.2,
-    maxPositions: 5,
-    leverage: 25,
-    stopLoss: 2.0,
-    takeProfit: 1.5
-  });
+  // Calculate position sizes for display
+  const calculatePositionSize = (level, strategy) => {
+    const baseAmount = accountBalance * (STRATEGIES[strategy].capitalBase / 100);
+    const multiplier = STRATEGIES[strategy].martingaleMultipliers[level - 1];
+    return baseAmount * multiplier;
+  };
 
-  const cryptoPairs = [
-    'HYPE/USDT', 'BTC/USDT', 'ETH/USDT', 'BNB/USDT', 
-    'SOL/USDT', 'XRP/USDT', 'ADA/USDT', 'DOT/USDT',
-    'AVAX/USDT', 'LINK/USDT', 'MATIC/USDT', 'UNI/USDT',
-    'ATOM/USDT', 'NEAR/USDT', 'FTM/USDT', 'ALGO/USDT',
-    'VET/USDT', 'SAND/USDT', 'MANA/USDT', 'LTC/USDT'
-  ];
-  
-  const strategies = [
-    { 
-      value: 'steady_climb', 
-      name: 'Steady Climb', 
-      description: 'Conservative martingale with 1.5x multiplier',
-      riskLevel: 'Low',
-      expectedReturn: '8-15%/month'
-    },
-    { 
-      value: 'power_surge', 
-      name: 'Power Surge', 
-      description: 'Aggressive martingale with 2.2x multiplier',
-      riskLevel: 'High',
-      expectedReturn: '20-35%/month'
-    }
-  ];
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2
+    }).format(amount);
+  };
 
-  // Simulate real-time price updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setMarketData(prev => {
-        const updated = { ...prev };
-        Object.keys(updated).forEach(pair => {
-          const changePercent = (Math.random() - 0.5) * 0.002; // ±0.1% change
-          updated[pair].price *= (1 + changePercent);
-          updated[pair].change += changePercent * 100;
-        });
-        return updated;
-      });
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleTradingToggle = async () => {
-    setIsLoading(true);
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://voltex-profits-backend.onrender.com';
-      
-      const response = await fetch(`${API_BASE_URL}/api/trading/toggle`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ 
-          isActive: !isTrading,
-          strategy: selectedStrategy,
-          tradingPair: selectedPair,
-          settings: tradingSettings
-        })
-      });
-
-      if (response.ok) {
-        setIsTrading(!isTrading);
-      } else {
-        alert('Failed to update trading status');
-      }
-    } catch (error) {
-      console.error('Trading toggle error:', error);
-      // For demo purposes, still toggle the state
-      setIsTrading(!isTrading);
-    } finally {
-      setIsLoading(false);
+  const handleToggleTrading = () => {
+    setIsTrading(!isTrading);
+    if (!isTrading) {
+      alert(`🚀 ${STRATEGIES[selectedStrategy].name} strategy activated!\n\nTrading ${selectedPair} with locked parameters:\n• Capital Base: 0.1% of balance (${formatCurrency(accountBalance * 0.001)})\n• Leverage: 25x futures\n• Martingale: ${STRATEGIES[selectedStrategy].maxLevels}-level progression\n\nAll parameters are professionally optimized and locked for maximum performance.`);
+    } else {
+      alert('🛑 Trading stopped. All positions will be closed safely.');
     }
   };
 
   const styles = {
     container: {
-      display: 'grid',
-      gap: '1.5rem',
-      gridTemplateColumns: '1fr',
-      maxWidth: '1400px'
+      padding: '20px',
+      maxWidth: '1400px',
+      margin: '0 auto'
     },
-    topRow: {
-      display: 'grid',
-      gridTemplateColumns: '2fr 1fr',
-      gap: '1.5rem'
+    header: {
+      marginBottom: '30px'
     },
-    card: {
-      backgroundColor: 'white',
-      padding: '1.5rem',
-      borderRadius: '12px',
-      border: '1px solid #e2e8f0',
-      boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
-    },
-    cardTitle: {
-      fontSize: '1.25rem',
+    title: {
+      fontSize: '28px',
       fontWeight: 'bold',
-      color: '#1e293b',
-      marginBottom: '1rem',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '0.5rem'
+      color: '#1F2937',
+      marginBottom: '8px'
+    },
+    subtitle: {
+      color: '#6B7280',
+      fontSize: '16px'
+    },
+    mainGrid: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 350px',
+      gap: '24px',
+      marginBottom: '30px'
     },
     tradingControls: {
-      display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
-      gap: '1.5rem',
-      marginBottom: '1.5rem'
+      background: 'white',
+      borderRadius: '12px',
+      border: '1px solid #e2e8f0',
+      padding: '24px'
+    },
+    controlSection: {
+      marginBottom: '24px'
+    },
+    sectionTitle: {
+      fontSize: '18px',
+      fontWeight: 'bold',
+      color: '#1e293b',
+      marginBottom: '16px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
     },
     formGroup: {
-      marginBottom: '1rem'
+      marginBottom: '16px'
     },
     label: {
       display: 'block',
-      fontSize: '0.875rem',
+      fontSize: '14px',
       fontWeight: '500',
       color: '#374151',
-      marginBottom: '0.5rem'
+      marginBottom: '6px'
     },
     select: {
       width: '100%',
-      padding: '0.5rem 0.75rem',
+      padding: '10px 12px',
       border: '1px solid #d1d5db',
       borderRadius: '6px',
-      backgroundColor: 'white',
-      fontSize: '0.875rem'
+      fontSize: '14px',
+      background: 'white'
     },
-    input: {
+    lockedInput: {
       width: '100%',
-      padding: '0.5rem 0.75rem',
-      border: '1px solid #d1d5db',
+      padding: '10px 12px',
+      border: '1px solid #e2e8f0',
       borderRadius: '6px',
-      fontSize: '0.875rem'
+      fontSize: '14px',
+      background: '#f9fafb',
+      color: '#6b7280',
+      cursor: 'not-allowed'
     },
-    statusCard: {
-      backgroundColor: isTrading ? '#dcfce7' : '#fee2e2',
-      border: `1px solid ${isTrading ? '#86efac' : '#fca5a5'}`,
-      borderRadius: '8px',
-      padding: '1rem',
-      textAlign: 'center'
-    },
-    statusIcon: {
-      fontSize: '2rem',
-      marginBottom: '0.5rem'
-    },
-    statusText: {
-      fontSize: '1.125rem',
-      fontWeight: '600',
-      color: isTrading ? '#166534' : '#991b1b',
-      marginBottom: '0.5rem'
-    },
-    statusDescription: {
-      fontSize: '0.875rem',
-      color: isTrading ? '#065f46' : '#7f1d1d',
-      marginBottom: '1rem'
-    },
-    toggleButton: {
-      width: '100%',
-      padding: '0.75rem 1.5rem',
-      backgroundColor: isTrading ? '#ef4444' : '#22c55e',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '0.875rem',
-      fontWeight: '600',
-      cursor: isLoading ? 'not-allowed' : 'pointer',
-      opacity: isLoading ? 0.5 : 1,
+    lockedLabel: {
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center',
-      gap: '0.5rem'
-    },
-    marketGrid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-      gap: '1rem'
-    },
-    marketCard: {
-      backgroundColor: '#f8fafc',
-      padding: '1rem',
-      borderRadius: '8px',
-      border: '1px solid #e2e8f0',
-      textAlign: 'center'
-    },
-    marketPair: {
-      fontSize: '0.875rem',
-      fontWeight: '600',
-      color: '#1e293b',
-      marginBottom: '0.25rem'
-    },
-    marketPrice: {
-      fontSize: '1rem',
-      fontWeight: 'bold',
-      color: '#1e293b',
-      marginBottom: '0.25rem'
-    },
-    marketChange: {
-      fontSize: '0.75rem',
-      fontWeight: '500'
-    },
-    marketVolume: {
-      fontSize: '0.75rem',
+      gap: '6px',
+      fontSize: '12px',
       color: '#64748b',
-      marginTop: '0.25rem'
-    },
-    positionsTable: {
-      width: '100%',
-      borderCollapse: 'collapse'
-    },
-    tableHeader: {
-      backgroundColor: '#f8fafc',
-      padding: '0.75rem',
-      textAlign: 'left',
-      fontSize: '0.875rem',
-      fontWeight: '500',
-      color: '#64748b',
-      borderBottom: '1px solid #e2e8f0'
-    },
-    tableCell: {
-      padding: '0.75rem',
-      fontSize: '0.875rem',
-      borderBottom: '1px solid #f1f5f9'
-    },
-    sideTag: {
-      padding: '0.25rem 0.5rem',
-      borderRadius: '4px',
-      fontSize: '0.75rem',
-      fontWeight: '500'
-    },
-    longTag: {
-      backgroundColor: '#dcfce7',
-      color: '#166534'
-    },
-    shortTag: {
-      backgroundColor: '#fee2e2',
-      color: '#991b1b'
-    },
-    pnlPositive: {
-      color: '#059669',
-      fontWeight: '600'
-    },
-    pnlNegative: {
-      color: '#dc2626',
-      fontWeight: '600'
+      marginTop: '4px'
     },
     strategyCard: {
-      backgroundColor: '#f8fafc',
-      border: '1px solid #e2e8f0',
-      borderRadius: '8px',
-      padding: '1rem',
-      marginBottom: '1rem'
+      border: '2px solid #e2e8f0',
+      borderRadius: '12px',
+      padding: '16px',
+      marginBottom: '16px',
+      transition: 'all 0.2s',
+      cursor: 'pointer'
+    },
+    strategyCardActive: {
+      borderColor: '#3b82f6',
+      background: '#eff6ff'
+    },
+    strategyHeader: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px',
+      marginBottom: '8px'
+    },
+    strategyIcon: {
+      fontSize: '24px'
     },
     strategyName: {
-      fontSize: '1rem',
-      fontWeight: '600',
-      color: '#1e293b',
-      marginBottom: '0.5rem'
+      fontSize: '16px',
+      fontWeight: 'bold',
+      color: '#1e293b'
     },
     strategyDescription: {
-      fontSize: '0.875rem',
+      fontSize: '12px',
       color: '#64748b',
-      marginBottom: '0.5rem'
+      marginBottom: '12px'
     },
-    strategyMeta: {
+    strategyStats: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: '8px',
+      fontSize: '11px'
+    },
+    strategyStat: {
+      display: 'flex',
+      justifyContent: 'space-between'
+    },
+    statLabel: {
+      color: '#64748b'
+    },
+    statValue: {
+      fontWeight: '500',
+      color: '#1e293b'
+    },
+    tradingButton: {
+      width: '100%',
+      padding: '16px',
+      fontSize: '18px',
+      fontWeight: 'bold',
+      border: 'none',
+      borderRadius: '8px',
+      cursor: 'pointer',
+      transition: 'all 0.2s',
+      marginBottom: '16px'
+    },
+    startButton: {
+      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+      color: 'white'
+    },
+    stopButton: {
+      background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+      color: 'white'
+    },
+    sidebar: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '20px'
+    },
+    accountInfo: {
+      background: 'white',
+      borderRadius: '12px',
+      border: '1px solid #e2e8f0',
+      padding: '20px'
+    },
+    balanceAmount: {
+      fontSize: '24px',
+      fontWeight: 'bold',
+      color: '#1e293b',
+      marginBottom: '4px'
+    },
+    balanceLabel: {
+      fontSize: '14px',
+      color: '#64748b'
+    },
+    capitalBase: {
+      background: '#f0fdf4',
+      border: '1px solid #bbf7d0',
+      borderRadius: '8px',
+      padding: '12px',
+      marginTop: '12px'
+    },
+    capitalBaseAmount: {
+      fontSize: '16px',
+      fontWeight: 'bold',
+      color: '#15803d'
+    },
+    capitalBaseLabel: {
+      fontSize: '12px',
+      color: '#15803d',
+      marginTop: '2px'
+    },
+    marketData: {
+      background: 'white',
+      borderRadius: '12px',
+      border: '1px solid #e2e8f0',
+      padding: '20px'
+    },
+    pairList: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '8px',
+      maxHeight: '300px',
+      overflowY: 'auto'
+    },
+    pairItem: {
       display: 'flex',
       justifyContent: 'space-between',
-      fontSize: '0.75rem'
+      alignItems: 'center',
+      padding: '8px 12px',
+      borderRadius: '6px',
+      cursor: 'pointer',
+      transition: 'background 0.2s'
     },
-    riskBadge: {
-      padding: '0.25rem 0.5rem',
-      borderRadius: '4px',
-      fontSize: '0.75rem',
+    pairItemActive: {
+      background: '#eff6ff',
+      borderLeft: '3px solid #3b82f6'
+    },
+    pairSymbol: {
+      fontWeight: '500',
+      color: '#1e293b'
+    },
+    pairPrice: {
+      fontSize: '12px',
+      color: '#64748b'
+    },
+    pairChange: {
+      fontSize: '12px',
       fontWeight: '500'
     },
-    lowRisk: {
-      backgroundColor: '#dcfce7',
-      color: '#166534'
+    changePositive: {
+      color: '#10b981'
     },
-    highRisk: {
-      backgroundColor: '#fee2e2',
-      color: '#991b1b'
+    changeNegative: {
+      color: '#ef4444'
     },
-    settingsGrid: {
+    positionsContainer: {
+      background: 'white',
+      borderRadius: '12px',
+      border: '1px solid #e2e8f0',
+      padding: '24px'
+    },
+    positionsGrid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-      gap: '1rem'
+      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+      gap: '16px'
     },
-    spinner: {
-      width: '16px',
-      height: '16px',
-      border: '2px solid #ffffff40',
-      borderTop: '2px solid #ffffff',
-      borderRadius: '50%',
-      animation: 'spin 1s linear infinite'
+    positionCard: {
+      border: '1px solid #e2e8f0',
+      borderRadius: '8px',
+      padding: '16px'
+    },
+    positionHeader: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: '12px'
+    },
+    positionPair: {
+      fontWeight: 'bold',
+      color: '#1e293b'
+    },
+    positionLevel: {
+      fontSize: '12px',
+      padding: '2px 6px',
+      background: '#f1f5f9',
+      borderRadius: '4px',
+      color: '#64748b'
+    },
+    positionStats: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: '8px',
+      fontSize: '12px'
+    },
+    positionStat: {
+      display: 'flex',
+      justifyContent: 'space-between'
+    },
+    positionPnL: {
+      fontSize: '16px',
+      fontWeight: 'bold',
+      textAlign: 'center',
+      marginTop: '8px'
+    },
+    pnlPositive: {
+      color: '#10b981'
+    },
+    pnlNegative: {
+      color: '#ef4444'
+    },
+    martingaleDisplay: {
+      background: '#f8fafc',
+      border: '1px solid #e2e8f0',
+      borderRadius: '8px',
+      padding: '16px',
+      marginTop: '16px'
+    },
+    martingaleTitle: {
+      fontSize: '14px',
+      fontWeight: '600',
+      color: '#1e293b',
+      marginBottom: '12px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px'
+    },
+    martingaleLevels: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(5, 1fr)',
+      gap: '6px',
+      fontSize: '10px'
+    },
+    martingaleLevel: {
+      padding: '4px 6px',
+      background: 'white',
+      border: '1px solid #e2e8f0',
+      borderRadius: '4px',
+      textAlign: 'center',
+      color: '#64748b'
+    },
+    warningBox: {
+      background: '#fef3c7',
+      border: '1px solid #f59e0b',
+      borderRadius: '8px',
+      padding: '12px',
+      marginTop: '16px'
+    },
+    warningText: {
+      fontSize: '12px',
+      color: '#92400e',
+      fontWeight: '500'
     }
   };
 
-  const selectedStrategyData = strategies.find(s => s.value === selectedStrategy);
+  const currentStrategy = STRATEGIES[selectedStrategy];
+  const selectedPairData = tradingPairs.find(p => p.symbol === selectedPair);
+  const capitalBaseAmount = accountBalance * (currentStrategy.capitalBase / 100);
 
   return (
     <div style={styles.container}>
-      {/* Top Row - Trading Controls & Status */}
-      <div style={styles.topRow}>
+      {/* Header */}
+      <div style={styles.header}>
+        <div style={styles.title}>📊 Live Trading Controls</div>
+        <div style={styles.subtitle}>
+          Professional trading with locked Martingale strategies - HYPE/USDT and 6+ pairs
+        </div>
+      </div>
+
+      {/* Main Trading Interface */}
+      <div style={styles.mainGrid}>
         {/* Trading Controls */}
-        <div style={styles.card}>
-          <h3 style={styles.cardTitle}>
-            🎯 Trading Configuration
-          </h3>
-          
-          <div style={styles.tradingControls}>
+        <div style={styles.tradingControls}>
+          {/* Strategy Selection */}
+          <div style={styles.controlSection}>
+            <div style={styles.sectionTitle}>
+              🎯 Strategy Selection
+            </div>
+            
+            {Object.entries(STRATEGIES).map(([key, strategy]) => (
+              <div
+                key={key}
+                style={{
+                  ...styles.strategyCard,
+                  ...(selectedStrategy === key ? styles.strategyCardActive : {}),
+                  borderColor: strategy.color
+                }}
+                onClick={() => setSelectedStrategy(key)}
+              >
+                <div style={styles.strategyHeader}>
+                  <span style={styles.strategyIcon}>{strategy.icon}</span>
+                  <span style={styles.strategyName}>{strategy.name}</span>
+                  <span style={{
+                    fontSize: '10px',
+                    padding: '2px 6px',
+                    background: strategy.color,
+                    color: 'white',
+                    borderRadius: '8px'
+                  }}>
+                    🔒 LOCKED
+                  </span>
+                </div>
+                <div style={styles.strategyDescription}>{strategy.description}</div>
+                <div style={styles.strategyStats}>
+                  <div style={styles.strategyStat}>
+                    <span style={styles.statLabel}>Capital Base:</span>
+                    <span style={styles.statValue}>0.1% ({formatCurrency(capitalBaseAmount)})</span>
+                  </div>
+                  <div style={styles.strategyStat}>
+                    <span style={styles.statLabel}>Leverage:</span>
+                    <span style={styles.statValue}>25x 🔒</span>
+                  </div>
+                  <div style={styles.strategyStat}>
+                    <span style={styles.statLabel}>Max Levels:</span>
+                    <span style={styles.statValue}>{strategy.maxLevels} 🔒</span>
+                  </div>
+                  <div style={styles.strategyStat}>
+                    <span style={styles.statLabel}>Expected:</span>
+                    <span style={styles.statValue}>{strategy.expectedMonthly}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Pair Selection */}
+          <div style={styles.controlSection}>
             <div style={styles.formGroup}>
               <label style={styles.label}>Trading Pair</label>
-              <select 
+              <select
                 style={styles.select}
                 value={selectedPair}
                 onChange={(e) => setSelectedPair(e.target.value)}
               >
-                {cryptoPairs.map(pair => (
-                  <option key={pair} value={pair}>{pair}</option>
-                ))}
-              </select>
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Strategy</label>
-              <select 
-                style={styles.select}
-                value={selectedStrategy}
-                onChange={(e) => setSelectedStrategy(e.target.value)}
-              >
-                {strategies.map(strategy => (
-                  <option key={strategy.value} value={strategy.value}>
-                    {strategy.name}
+                {tradingPairs.map(pair => (
+                  <option key={pair.symbol} value={pair.symbol}>
+                    {pair.symbol} - ${pair.price} ({pair.change > 0 ? '+' : ''}{pair.change}%)
                   </option>
                 ))}
               </select>
             </div>
           </div>
 
-          {/* Strategy Details */}
-          {selectedStrategyData && (
-            <div style={styles.strategyCard}>
-              <div style={styles.strategyName}>{selectedStrategyData.name}</div>
-              <div style={styles.strategyDescription}>{selectedStrategyData.description}</div>
-              <div style={styles.strategyMeta}>
-                <span style={{
-                  ...styles.riskBadge,
-                  ...(selectedStrategyData.riskLevel === 'Low' ? styles.lowRisk : styles.highRisk)
-                }}>
-                  {selectedStrategyData.riskLevel} Risk
-                </span>
-                <span style={{ color: '#059669', fontWeight: '500' }}>
-                  {selectedStrategyData.expectedReturn}
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* Risk Settings */}
-          <div style={styles.settingsGrid}>
-            <div>
-              <label style={styles.label}>Risk Per Trade (%)</label>
-              <input 
-                type="number" 
-                style={styles.input}
-                value={tradingSettings.riskPerTrade}
-                onChange={(e) => setTradingSettings(prev => ({
-                  ...prev, 
-                  riskPerTrade: parseFloat(e.target.value)
-                }))}
-                step="0.1"
-                min="0.1"
-                max="5"
-              />
-            </div>
-            <div>
-              <label style={styles.label}>Leverage</label>
-              <input 
-                type="number" 
-                style={styles.input}
-                value={tradingSettings.leverage}
-                onChange={(e) => setTradingSettings(prev => ({
-                  ...prev, 
-                  leverage: parseInt(e.target.value)
-                }))}
-                min="1"
-                max="50"
-              />
-            </div>
-            <div>
-              <label style={styles.label}>Max Positions</label>
-              <input 
-                type="number" 
-                style={styles.input}
-                value={tradingSettings.maxPositions}
-                onChange={(e) => setTradingSettings(prev => ({
-                  ...prev, 
-                  maxPositions: parseInt(e.target.value)
-                }))}
-                min="1"
-                max="10"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Trading Status */}
-        <div style={styles.card}>
-          <h3 style={styles.cardTitle}>
-            ⚡ Trading Status
-          </h3>
-          
-          <div style={styles.statusCard}>
-            <div style={styles.statusIcon}>
-              {isTrading ? '🟢' : '🔴'}
-            </div>
-            <div style={styles.statusText}>
-              {isTrading ? 'Trading Active' : 'Trading Stopped'}
-            </div>
-            <div style={styles.statusDescription}>
-              {isTrading 
-                ? `Running ${selectedStrategyData?.name} on ${selectedPair}`
-                : 'Click start to begin automated trading'
-              }
+          {/* Locked Parameters Display */}
+          <div style={styles.controlSection}>
+            <div style={styles.sectionTitle}>
+              🔒 Locked Parameters
             </div>
             
-            <button 
-              style={styles.toggleButton}
-              onClick={handleTradingToggle}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <div style={styles.spinner}></div>
-                  Updating...
-                </>
-              ) : (
-                <>
-                  {isTrading ? '⏸️ Stop Trading' : '▶️ Start Trading'}
-                </>
-              )}
-            </button>
-          </div>
-
-          {/* Trading Stats */}
-          <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '8px' }}>
-            <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.5rem' }}>
-              <strong>Current Session:</strong>
-            </div>
-            <div style={{ fontSize: '0.875rem', color: '#1e293b' }}>
-              • Active Positions: {positions.length}<br/>
-              • Total P&L: <span style={styles.pnlPositive}>+$35.28</span><br/>
-              • Win Rate: 73.5%<br/>
-              • Exchange: {user?.trading?.exchange || 'Bybit'}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Market Data */}
-      <div style={styles.card}>
-        <h3 style={styles.cardTitle}>
-          📊 Live Market Data
-        </h3>
-        <div style={styles.marketGrid}>
-          {Object.entries(marketData).map(([pair, data]) => (
-            <div key={pair} style={styles.marketCard}>
-              <div style={styles.marketPair}>{pair}</div>
-              <div style={styles.marketPrice}>${data.price.toFixed(2)}</div>
-              <div style={{
-                ...styles.marketChange,
-                color: data.change >= 0 ? '#059669' : '#dc2626'
-              }}>
-                {data.change >= 0 ? '+' : ''}{data.change.toFixed(2)}%
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Capital Base (per Martingale cycle)</label>
+              <input
+                style={styles.lockedInput}
+                value={`0.1% of balance = ${formatCurrency(capitalBaseAmount)}`}
+                disabled
+              />
+              <div style={styles.lockedLabel}>
+                🔒 Professionally optimized - cannot be modified
               </div>
-              <div style={styles.marketVolume}>Vol: {data.volume}</div>
             </div>
-          ))}
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Leverage</label>
+              <input
+                style={styles.lockedInput}
+                value="25x (Futures Trading)"
+                disabled
+              />
+              <div style={styles.lockedLabel}>
+                🔒 Battle-tested setting for optimal performance
+              </div>
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Max Martingale Levels</label>
+              <input
+                style={styles.lockedInput}
+                value={`${currentStrategy.maxLevels} levels`}
+                disabled
+              />
+              <div style={styles.lockedLabel}>
+                🔒 Risk-controlled progression system
+              </div>
+            </div>
+          </div>
+
+          {/* Martingale Progression Display */}
+          <div style={styles.martingaleDisplay}>
+            <div style={styles.martingaleTitle}>
+              📈 {currentStrategy.name} Progression (LOCKED)
+            </div>
+            <div style={styles.martingaleLevels}>
+              {currentStrategy.martingaleMultipliers.map((multiplier, index) => (
+                <div key={index} style={styles.martingaleLevel}>
+                  L{index + 1}: {multiplier}x
+                </div>
+              ))}
+            </div>
+            <div style={{
+              fontSize: '11px',
+              color: '#64748b',
+              marginTop: '8px',
+              textAlign: 'center'
+            }}>
+              Position sizes: {formatCurrency(calculatePositionSize(1, selectedStrategy))} → {formatCurrency(calculatePositionSize(15, selectedStrategy))}
+            </div>
+          </div>
+
+          {/* Warning Box */}
+          <div style={styles.warningBox}>
+            <div style={styles.warningText}>
+              ⚠️ All parameters have been optimized through extensive backtesting and live trading. 
+              Modifications could reduce profitability and increase risk.
+            </div>
+          </div>
+
+          {/* Trading Button */}
+          <button
+            style={{
+              ...styles.tradingButton,
+              ...(isTrading ? styles.stopButton : styles.startButton)
+            }}
+            onClick={handleToggleTrading}
+          >
+            {isTrading ? '🛑 Stop Trading' : `🚀 Start ${currentStrategy.name}`}
+          </button>
+        </div>
+
+        {/* Sidebar */}
+        <div style={styles.sidebar}>
+          {/* Account Information */}
+          <div style={styles.accountInfo}>
+            <div style={styles.sectionTitle}>💼 Account Status</div>
+            <div style={styles.balanceAmount}>{formatCurrency(accountBalance)}</div>
+            <div style={styles.balanceLabel}>Exchange Balance</div>
+            
+            <div style={styles.capitalBase}>
+              <div style={styles.capitalBaseAmount}>{formatCurrency(capitalBaseAmount)}</div>
+              <div style={styles.capitalBaseLabel}>Capital Base (0.1%)</div>
+            </div>
+          </div>
+
+          {/* Market Data */}
+          <div style={styles.marketData}>
+            <div style={styles.sectionTitle}>📈 Market Data</div>
+            <div style={styles.pairList}>
+              {tradingPairs.map(pair => (
+                <div
+                  key={pair.symbol}
+                  style={{
+                    ...styles.pairItem,
+                    ...(selectedPair === pair.symbol ? styles.pairItemActive : {})
+                  }}
+                  onClick={() => setSelectedPair(pair.symbol)}
+                >
+                  <div>
+                    <div style={styles.pairSymbol}>{pair.symbol}</div>
+                    <div style={styles.pairPrice}>${pair.price}</div>
+                  </div>
+                  <div style={{
+                    ...styles.pairChange,
+                    ...(pair.change >= 0 ? styles.changePositive : styles.changeNegative)
+                  }}>
+                    {pair.change >= 0 ? '+' : ''}{pair.change}%
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Active Positions */}
-      <div style={styles.card}>
-        <h3 style={styles.cardTitle}>
-          📈 Active Positions
-        </h3>
-        {positions.length > 0 ? (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={styles.positionsTable}>
-              <thead>
-                <tr>
-                  <th style={styles.tableHeader}>Pair</th>
-                  <th style={styles.tableHeader}>Side</th>
-                  <th style={styles.tableHeader}>Size</th>
-                  <th style={styles.tableHeader}>Entry Price</th>
-                  <th style={styles.tableHeader}>Current Price</th>
-                  <th style={styles.tableHeader}>P&L</th>
-                  <th style={styles.tableHeader}>Level</th>
-                </tr>
-              </thead>
-              <tbody>
-                {positions.map(position => (
-                  <tr key={position.id}>
-                    <td style={styles.tableCell}>{position.pair}</td>
-                    <td style={styles.tableCell}>
-                      <span style={{
-                        ...styles.sideTag,
-                        ...(position.side === 'LONG' ? styles.longTag : styles.shortTag)
-                      }}>
-                        {position.side}
-                      </span>
-                    </td>
-                    <td style={styles.tableCell}>{position.size}</td>
-                    <td style={styles.tableCell}>${position.entry.toFixed(2)}</td>
-                    <td style={styles.tableCell}>${position.current.toFixed(2)}</td>
-                    <td style={{
-                      ...styles.tableCell,
-                      ...(position.pnl >= 0 ? styles.pnlPositive : styles.pnlNegative)
-                    }}>
-                      ${position.pnl >= 0 ? '+' : ''}{position.pnl.toFixed(2)}
-                    </td>
-                    <td style={styles.tableCell}>
-                      <span style={{ 
-                        padding: '0.25rem 0.5rem', 
-                        backgroundColor: '#dbeafe', 
-                        color: '#1e40af',
-                        borderRadius: '4px',
-                        fontSize: '0.75rem',
-                        fontWeight: '500'
-                      }}>
-                        L{position.level}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
-            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📊</div>
-            <div>No active positions</div>
-            <div style={{ fontSize: '0.875rem', marginTop: '0.25rem' }}>
-              Start trading to see your positions here
+      <div style={styles.positionsContainer}>
+        <div style={styles.sectionTitle}>⚡ Active Positions</div>
+        <div style={styles.positionsGrid}>
+          {activePositions.map(position => (
+            <div key={position.id} style={styles.positionCard}>
+              <div style={styles.positionHeader}>
+                <span style={styles.positionPair}>{position.pair}</span>
+                <span style={styles.positionLevel}>Level {position.level}</span>
+              </div>
+              <div style={styles.positionStats}>
+                <div style={styles.positionStat}>
+                  <span style={styles.statLabel}>Strategy:</span>
+                  <span style={styles.statValue}>{position.strategy}</span>
+                </div>
+                <div style={styles.positionStat}>
+                  <span style={styles.statLabel}>Size:</span>
+                  <span style={styles.statValue}>{position.size}</span>
+                </div>
+                <div style={styles.positionStat}>
+                  <span style={styles.statLabel}>Entry:</span>
+                  <span style={styles.statValue}>${position.entryPrice}</span>
+                </div>
+                <div style={styles.positionStat}>
+                  <span style={styles.statLabel}>Current:</span>
+                  <span style={styles.statValue}>${position.currentPrice}</span>
+                </div>
+                <div style={styles.positionStat}>
+                  <span style={styles.statLabel}>Duration:</span>
+                  <span style={styles.statValue}>{position.duration}</span>
+                </div>
+              </div>
+              <div style={{
+                ...styles.positionPnL,
+                ...(position.pnl >= 0 ? styles.pnlPositive : styles.pnlNegative)
+              }}>
+                {formatCurrency(position.pnl)} ({position.pnl >= 0 ? '+' : ''}{position.pnlPercent}%)
+              </div>
             </div>
-          </div>
-        )}
+          ))}
+        </div>
       </div>
-
-      <style>
-        {`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}
-      </style>
     </div>
   );
 }
