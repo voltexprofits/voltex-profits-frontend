@@ -2,15 +2,15 @@
 import React, { useState, useEffect } from 'react';
 
 function SettingsPage({ user }) {
-  const [activeSection, setActiveSection] = useState('exchanges'); // Start with exchanges for API setup
+  const [activeSection, setActiveSection] = useState('exchanges');
   const [profileData, setProfileData] = useState({
     username: user?.username || 'trader_pro',
     email: user?.email || 'trader@voltexprofits.com',
     firstName: 'John',
     lastName: 'Trader',
     phone: '+1 (555) 123-4567',
-    timezone: 'UTC+3', // Updated for Kenya
-    country: 'Kenya', // Updated for your location
+    timezone: 'UTC+3',
+    country: 'Kenya',
     language: 'English',
     avatar: null
   });
@@ -22,7 +22,7 @@ function SettingsPage({ user }) {
     stopLossPercent: 5,
     takeProfitPercent: 10,
     martingaleEnabled: true,
-    maxMartingaleLevel: 15, // Updated to match your strategy
+    maxMartingaleLevel: 15,
     autoTradingEnabled: true,
     tradingHours: {
       enabled: true,
@@ -38,7 +38,7 @@ function SettingsPage({ user }) {
       apiKey: '',
       apiSecret: '',
       testnet: false,
-      leverage: 25, // Your exact leverage
+      leverage: 25,
       status: 'disconnected'
     },
     binance: {
@@ -53,46 +53,11 @@ function SettingsPage({ user }) {
       enabled: false,
       apiKey: '',
       apiSecret: '',
-      passphrase: '', // Added passphrase for Bitget
+      passphrase: '',
       testnet: true,
       leverage: 20,
       status: 'disconnected'
     }
-  });
-
-  const [assetPreferences, setAssetPreferences] = useState({
-    'BTC/USDT': { enabled: true, allocation: 25, priority: 1 },
-    'ETH/USDT': { enabled: true, allocation: 20, priority: 2 },
-    'HYPE/USDT': { enabled: true, allocation: 18, priority: 3 },
-    'BNB/USDT': { enabled: true, allocation: 15, priority: 4 },
-    'SOL/USDT': { enabled: true, allocation: 12, priority: 5 },
-    'ADA/USDT': { enabled: false, allocation: 5, priority: 6 },
-    'XRP/USDT': { enabled: false, allocation: 5, priority: 7 }
-  });
-
-  const [securitySettings, setSecuritySettings] = useState({
-    twoFactorEnabled: false,
-    emailNotifications: true,
-    smsNotifications: false,
-    loginAlerts: true,
-    tradeConfirmations: true,
-    passwordLastChanged: new Date('2024-06-15'),
-    sessionTimeout: 60,
-    ipWhitelist: [],
-    apiRestrictions: true
-  });
-
-  const [notificationSettings, setNotificationSettings] = useState({
-    tradeExecuted: true,
-    profitTarget: true,
-    stopLoss: true,
-    marketAlerts: true,
-    systemUpdates: true,
-    weeklyReports: true,
-    monthlyReports: true,
-    emailDigest: 'daily',
-    pushNotifications: true,
-    soundAlerts: false
   });
 
   const [isEditing, setIsEditing] = useState(false);
@@ -111,7 +76,6 @@ function SettingsPage({ user }) {
     { id: 'advanced', name: 'Advanced', icon: '⚙️', description: 'Advanced options' }
   ];
 
-  // API Configuration Functions
   const handleConfigureExchange = (exchange) => {
     setSelectedExchange(exchange);
     setActiveModal(`${exchange}_config`);
@@ -121,8 +85,13 @@ function SettingsPage({ user }) {
     setTestingConnection(true);
     
     try {
-      // Call your backend to test API connection
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/trading/connect`, {
+      const apiUrl = window.location.hostname === 'www.voltexprofits.com' 
+        ? 'https://voltex-profits-backend.onrender.com'
+        : 'http://localhost:5000';
+      
+      console.log('🔗 Connecting to:', apiUrl);
+      
+      const response = await fetch(`${apiUrl}/api/trading/connect`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -136,7 +105,14 @@ function SettingsPage({ user }) {
         })
       });
 
+      console.log('📡 Response status:', response.status);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const result = await response.json();
+      console.log('📊 API Response:', result);
       
       if (result.success) {
         setExchangeConfig(prev => ({
@@ -149,35 +125,11 @@ function SettingsPage({ user }) {
         alert(`✅ ${selectedExchange.charAt(0).toUpperCase() + selectedExchange.slice(1)} connected successfully!\nBalance: $${result.balance || '0.00'}`);
         setActiveModal(null);
       } else {
-        alert(`❌ Connection failed: ${result.message}`);
+        alert(`❌ Connection failed: ${result.message || 'Unknown error'}`);
       }
     } catch (error) {
+      console.error('❌ API Connection Error:', error);
       alert(`❌ Connection error: ${error.message}`);
-    } finally {
-      setTestingConnection(false);
-    }
-  };
-
-  const handleTestConnection = async (exchange) => {
-    setTestingConnection(true);
-    
-    try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/trading/balance`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        alert(`✅ ${exchange.charAt(0).toUpperCase() + exchange.slice(1)} connection test successful!\nBalance: $${result.balance}\nMargin: $${result.margin || '0.00'}`);
-      } else {
-        alert(`❌ Test failed: ${result.message}`);
-      }
-    } catch (error) {
-      alert(`❌ Test error: ${error.message}`);
     } finally {
       setTestingConnection(false);
     }
@@ -460,15 +412,6 @@ function SettingsPage({ user }) {
           </div>
 
           <div style={styles.exchangeActions}>
-            {config.status === 'connected' && (
-              <button
-                style={styles.actionButton}
-                onClick={() => handleTestConnection(exchange)}
-                disabled={testingConnection}
-              >
-                {testingConnection ? 'Testing...' : 'Test'}
-              </button>
-            )}
             <button
               style={styles.actionButton}
               onClick={() => handleConfigureExchange(exchange)}
@@ -579,7 +522,6 @@ function SettingsPage({ user }) {
     </div>
   );
 
-  // Keep all your other render functions from the original file
   const renderProfileSection = () => (
     <div>
       <div style={styles.formGrid}>
@@ -663,9 +605,6 @@ function SettingsPage({ user }) {
     </div>
   );
 
-  // Add other render functions here (assets, security, notifications, subscription, advanced)
-  // For brevity, I'll include just the essential ones for API configuration
-
   const renderContent = () => {
     switch (activeSection) {
       case 'profile': return renderProfileSection();
@@ -687,7 +626,6 @@ function SettingsPage({ user }) {
 
   return (
     <div style={styles.container}>
-      {/* Sidebar Navigation */}
       <div style={styles.sidebar}>
         <div style={styles.sidebarTitle}>⚙️ Settings</div>
         <div style={styles.sectionList}>
@@ -710,7 +648,6 @@ function SettingsPage({ user }) {
         </div>
       </div>
 
-      {/* Main Content */}
       <div style={styles.content}>
         <div style={styles.contentHeader}>
           <div style={styles.contentTitle}>{getCurrentSectionTitle()}</div>
@@ -727,7 +664,6 @@ function SettingsPage({ user }) {
         {renderContent()}
       </div>
 
-      {/* API Configuration Modals */}
       {activeModal && activeModal.includes('_config') && (
         <div style={styles.modal}>
           <div style={styles.modalContent}>
@@ -813,14 +749,13 @@ function SettingsPage({ user }) {
                 onClick={handleApiSubmit}
                 disabled={testingConnection || !exchangeConfig[selectedExchange]?.apiKey || !exchangeConfig[selectedExchange]?.apiSecret}
               >
-                {testingConnection ? 'Testing...' : 'Connect & Test'}
+                {testingConnection ? 'Connecting...' : 'Connect'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Password Change Modal */}
       {activeModal === 'password' && (
         <div style={styles.modal}>
           <div style={styles.modalContent}>
